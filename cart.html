@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>
+سلة المشتريات
+</title>
+
+<link rel="stylesheet"
+href="css/style.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+</head>
+
+<body>
+
+<header>
+
+<img
+src="images/logo.png"
+class="logo">
+
+<h1>
+
+سلة المشتريات
+
+<br>
+
+Shopping Cart
+
+</h1>
+
+</header>
+
+<div class="cart-page">
+
+<div>
+
+<input
+type="text"
+id="cartSearch"
+placeholder="Search Product..."
+style="
+width:100%;
+padding:12px;
+margin-bottom:15px;
+border:1px solid #ddd;
+border-radius:10px;
+font-size:16px;
+">
+<div id="cartItems"></div>
+
+</div>
+
+<div class="cart-summary">
+
+
+
+
+<h2>
+
+Items
+
+<br>
+
+<span id="cartTotal">
+
+0
+
+</span>
+
+</h2>
+
+<input
+type="text"
+id="customerName"
+
+placeholder="
+اسم العميل
+Customer Name
+">
+
+<button id="createInvoice">
+
+📄 إنشاء فاتورة
+Create Invoice
+
+</button>
+
+<button id="whatsappBtn">
+
+💬 واتساب
+WhatsApp
+
+</button>
+
+<a
+href="index.html"
+class="back-btn">
+
+⬅ العودة للمتجر
+Back To Store
+
+</a>
+
+</div>
+
+</div>
+
+<!-- INVOICE TEMPLATE -->
+
+<div
+id="invoiceTemplate"
+style="
+position:fixed;
+left:-99999px;
+top:0;
+background:white;
+padding:30px;
+width:1200px;
+">
+
+<div class="invoice-box">
+
+<div class="invoice-header">
+
+<img
+src="images/logo.png"
+class="invoice-logo">
+
+</div>
+
+<div class="invoice-info">
+
+<div>
+
+CUSTOMER
+
+<br>
+
+<strong id="invoiceCustomer">
+
+</strong>
+
+</div>
+
+<div>
+
+DATE
+
+<br>
+
+<strong id="invoiceDate">
+
+</strong>
+
+</div>
+
+<div>
+
+INV NO
+
+<br>
+
+<strong id="invoiceNo">
+
+</strong>
+
+</div>
+
+</div>
+
+<table id="invoiceTable">
+
+<thead>
+
+<tr>
+
+<th>
+
+Picture
+
+</th>
+
+<th>
+
+Code
+
+</th>
+
+<th>
+
+Description
+
+</th>
+
+<th>
+
+Qty
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody id="invoiceBody">
+
+</tbody>
+
+</table>
+
+<div class="invoice-total">
+
+Items
+
+<br>
+
+<span id="invoiceTotal">
+
+0
+
+</span>
+
+</div>
+
+</div>
+
+</div>
+
+<script
+type="module"
+src="js/cart.js">
+</script>
+
+</body>
+
+</html>

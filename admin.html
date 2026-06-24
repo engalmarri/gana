@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>
+Administration Panel / لوحة الإدارة
+</title>
+
+<link rel="stylesheet"
+href="css/style.css">
+
+</head>
+
+<body>
+
+<div class="admin-box">
+
+<h1>
+
+Add / Edit Product
+<br>
+إضافة / تعديل منتج
+
+</h1>
+<div class="form-grid">
+
+<input
+id="name"
+placeholder="Arabic Name / الاسم بالعربي">
+
+<input
+id="description"
+placeholder="English Name / الاسم بالإنجليزي">
+
+<input
+id="code"
+placeholder="Product Code / كود المنتج">
+
+<select id="category">
+
+<option value="مواد غذائية">
+Foodstuffs / مواد غذائية
+</option>
+
+<option value="خضار">
+Vegetables / خضار
+</option>
+
+<option value="منظفات">
+Detergents / منظفات
+</option>
+<option value="مستلزمات">
+Supplies / مستلزمات
+</option>
+</select>
+<input
+type="file"
+id="excelFile"
+accept=".xlsx,.csv"
+style="display:none">
+
+
+<input
+type="file"
+id="excelFile"
+accept=".xlsx,.csv"
+style="display:none">
+
+<input
+id="image"
+placeholder="Image URL / رابط الصورة">
+
+<label
+for="imageFile"
+class="upload-btn">
+
+🖼️ إدراج من معرض الصور
+<br>
+Insert From Gallery
+
+</label>
+
+<input
+type="file"
+id="imageFile"
+accept="image/*"
+style="display:none">
+
+<button id="importExcel">
+
+📥 Import Excel
+استيراد منتجات من ملف إكسل
+
+</button>
+
+<button id="exportExcel">
+
+📤 Export Excel
+تصدير المنتجات كامله الى ملف إكسل
+
+</button>
+</div>
+<div
+style="
+text-align:center;
+margin:15px 0;
+">
+
+<img
+id="previewImage"
+src="https://via.placeholder.com/150"
+
+style="
+width:150px;
+height:150px;
+object-fit:contain;
+border:1px solid #ddd;
+border-radius:10px;
+padding:10px;
+background:white;
+">
+
+</div>
+
+<button id="save">
+
+💾 Save Product / حفظ المنتج
+
+</button>
+
+<hr>
+
+<h2>
+
+All Products / جميع المنتجات
+
+</h2>
+
+<input
+id="searchAdmin"
+placeholder="Search Product / البحث عن منتج">
+
+<br><br>
+
+<div class="sort-buttons">
+
+<button id="sortNewest">
+
+Newest First
+<br>
+الأحدث
+
+</button>
+
+<button id="sortOldest">
+
+Oldest First
+<br>
+الأقدم
+
+</button>
+
+<button id="sortNameAsc">
+
+A → Z
+<br>
+أ → ي
+
+</button>
+
+</div>
+
+<br>
+<div class="stats-box">
+
+<div class="stat-card">
+
+<h3>Total Products</h3>
+
+<span id="totalProducts">
+0
+</span>
+
+</div>
+
+<div class="stat-card">
+
+<h3>Foodstuffs</h3>
+
+<span id="foodCount">
+0
+</span>
+
+</div>
+
+<div class="stat-card">
+
+<h3>Vegetables</h3>
+
+<span id="vegCount">
+0
+</span>
+
+</div>
+
+<div class="stat-card">
+
+<h3>Detergents</h3>
+
+<span id="detCount">
+0
+</span>
+<div class="stat-card">
+
+<h3>
+Supplies
+</h3>
+
+<span id="supCount">
+0
+</span>
+
+</div>
+</div>
+
+</div>
+<div id="productsTable">
+
+</div>
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script
+type="module"
+src="js/admin.js">
+</script>
+
+<script>
+
+document
+.getElementById("image")
+.addEventListener("input",function(){
+
+document
+.getElementById("previewImage")
+.src =
+
+this.value ||
+
+"https://via.placeholder.com/150";
+
+});
+
+</script>
+
+</body>
+
+</html>
