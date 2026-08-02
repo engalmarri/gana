@@ -7,22 +7,22 @@ from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 const firebaseConfig = {
 
 apiKey:
-"AIzaSyDmmwICZYXE_eTzUt8YuZ8VhOtFOO3DssQ",
+"AIzaSyA0rFoNBEodMDTnjVfWrEN1el4h_glnsfc",
 
 authDomain:
-"sallahorders-3d3bb.firebaseapp.com",
+"gana-f8e1f.firebaseapp.com",
 
 projectId:
-"sallahorders-3d3bb",
+"gana-f8e1f",
 
 storageBucket:
-"sallahorders-3d3bb.firebasestorage.app",
+"gana-f8e1f.firebasestorage.app",
 
 messagingSenderId:
-"1063050925586",
+"679621972460",
 
 appId:
-"1:1063050925586:web:327700c149dde96f1eaacb"
+"1:679621972460:web:1d9da658bfa8fd414cf0c9"
 
 };
 
