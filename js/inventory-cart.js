@@ -4,11 +4,13 @@ import {
   collection, addDoc, getDoc, getDocs, updateDoc, doc,
   query, where, orderBy, serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-import { getLang, setLang, t, catLabel, applyFullLang, applyCartLang } from "./i18n.js";
+import { getLang, setLang, t, catLabel, applyFullLang, applyMenuLang } from "./i18n.js";
 
-const SESSION_KEY = "sallah_customer_session";
+const SESSION_KEY = "sallah_inventory_session";
 const CUSTOMERS_LOCAL_KEY = "sallah_customers_data";
-const INV_COUNTER_KEY = "sallah_invoice_counter";
+const INV_COUNTER_KEY = "sallah_inv_invoice_counter";
+const BRANCHES_KEY = "sallah_branches";
+const DEFAULT_BRANCHES = ["فرع الحمدانية - Hamdanya","فرع الطائف - Altayf","فرع السامر - Al-Samer","فرع المعمل - Almamal"];
 const COLUMNS_PER_INVOICE_ROW = 3;
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
@@ -23,6 +25,9 @@ const CAT_EN_NAMES = {
 };
 const CAT_ORDER = ["قسم المعمل","قسم السوبرماركت","قسم محلات الجملة","قسم المستودع","احتياجات المعمل"];
 const CAT_META_KEY="simsim_cat_meta";
+
+function getBranches(){try{const d=localStorage.getItem(BRANCHES_KEY);if(d){const p=JSON.parse(d);if(Array.isArray(p)&&p.length)return p;}}catch(e){}return[...DEFAULT_BRANCHES];}
+
 async function loadCategoriesFromFirestore(){
   try{
     const snap=await getDocs(query(collection(db,"categories"),orderBy("order","asc")));
@@ -38,7 +43,7 @@ async function loadCategoriesFromFirestore(){
 function getCatMeta(){try{return JSON.parse(localStorage.getItem(CAT_META_KEY))||{};}catch(e){return{};}}
 function getCatMetaObj(cat){const m=getCatMeta();return m[cat]||{nameEn:cat,desc:"",showDesc:false};}
 
-let cart = JSON.parse(localStorage.getItem("cart")) || [];
+let cart = JSON.parse(localStorage.getItem("inventoryCart")) || [];
 let currentCustomer = null;
 let currentCustomerPin = "";
 let customersCache = [];
@@ -73,11 +78,38 @@ const cartCategoryFilter = document.getElementById("cartCategoryFilter");
 function escapeHTML(v){ return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;"); }
 function getItemQty(item){ const q=parseInt(item.qty,10); return isNaN(q)||q<1?1:q; }
 function getProductImage(item){ if(item.image&&typeof item.image==="string"&&item.image.trim()!=="") return item.image; return "images/noimg.jpg"; }
-function saveCart(){ localStorage.setItem("cart",JSON.stringify(cart)); }
+function saveCart(){ localStorage.setItem("inventoryCart",JSON.stringify(cart)); }
 function getCartTotalQty(){ return cart.reduce((s,i)=>s+getItemQty(i),0); }
 function formatArabicDate(date){ const d=date instanceof Timestamp?date.toDate():(date?.toDate?date.toDate():new Date(date)); return `${ARABIC_DAYS[d.getDay()]} ${ARABIC_MONTHS[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`; }
 function getLocalCustomers(){ try{return JSON.parse(localStorage.getItem(CUSTOMERS_LOCAL_KEY))||[];}catch(e){return [];} }
 function saveLocalCustomers(a){ localStorage.setItem(CUSTOMERS_LOCAL_KEY,JSON.stringify(a)); }
+
+function getSelectedBranch(){
+  const desktop = document.getElementById("invBranchSelect");
+  const mobile = document.getElementById("invBranchSelectMobile");
+  if(desktop && desktop.style.display !== "none" && desktop.value) return desktop.value;
+  if(mobile && mobile.value) return mobile.value;
+  if(desktop && desktop.value) return desktop.value;
+  return "";
+}
+
+function populateBranchDropdown(){
+  const branches=getBranches();
+  [document.getElementById("invBranchSelect"),document.getElementById("invBranchSelectMobile")].forEach(sel=>{
+    if(!sel)return;
+    sel.innerHTML="";
+    const blank=document.createElement("option");
+    blank.value="";
+    blank.textContent=t("selectBranch");
+    sel.appendChild(blank);
+    branches.forEach(b=>{
+      const o=document.createElement("option");
+      o.value=b;
+      o.textContent=b;
+      sel.appendChild(o);
+    });
+  });
+}
 
 /* LANG */
 function applyLang(){
@@ -85,13 +117,48 @@ function applyLang(){
   document.documentElement.dir = getLang() === "en" ? "ltr" : "rtl";
   const btn = document.getElementById("langToggle");
   if(btn) btn.textContent = getLang() === "en" ? "عربي" : "EN";
-  const modalBtn = document.getElementById("loginModalLangToggle");
-  if(modalBtn) modalBtn.textContent = getLang() === "en" ? "🌐 عربي" : "🌐 EN";
+  const loginModalBtn = document.getElementById("loginModalLangToggle");
+  if(loginModalBtn) loginModalBtn.textContent = getLang() === "en" ? "🌐 عربي" : "🌐 EN";
   const overlayBtn = document.getElementById("loginOverlayLangToggle");
   if(overlayBtn) overlayBtn.textContent = getLang() === "en" ? "🌐 عربي" : "🌐 EN";
-  const invBlockBtn = document.getElementById("invBlockLangToggle");
-  if(invBlockBtn) invBlockBtn.textContent = getLang() === "en" ? "🌐 عربي" : "🌐 EN";
-  applyCartLang();
+  applyMenuLang();
+  // All data-i18n elements
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const k = el.getAttribute("data-i18n");
+    if(k && t(k) !== k) el.textContent = t(k);
+  });
+  // Login modal elements (account type options use select options)
+  const sel = document.getElementById("loginAccountType");
+  if(sel && sel.options.length >= 3){
+    sel.options[0].textContent = t("accountType");
+    sel.options[1].textContent = t("accountTypeLab");
+    sel.options[2].textContent = t("accountTypeBranch");
+  }
+  const nameSel = document.getElementById("loginName");
+  if(nameSel){ const def = nameSel.querySelector('option[value=""]'); if(def) def.textContent = t("selectName"); }
+  const pin = document.getElementById("loginPin");
+  if(pin) pin.placeholder = t("pinPlaceholder");
+  const subBtn = document.getElementById("loginSubmit");
+  if(subBtn) subBtn.textContent = t("submit");
+  // Profile
+  const pItems = document.querySelectorAll("#profileDropdown .profile-dropdown-item");
+  if(pItems[0]){ const s = pItems[0].querySelector("strong"); if(s) s.textContent = t("name"); }
+  if(pItems[1]){ const s = pItems[1].querySelector("strong"); if(s) s.textContent = t("type"); }
+  if(pItems[3]){ const b = pItems[3].querySelector("button"); if(b) b.textContent = t("changePin"); }
+  if(pItems[4]){ const b = pItems[4].querySelector("button"); if(b) b.textContent = t("myInvoices"); }
+  if(pItems[5]){ const b = pItems[5].querySelector("button"); if(b) b.textContent = t("logout"); }
+  const pt = document.getElementById("profileType");
+  if(pt && currentCustomer && !currentCustomer.accountType) pt.textContent = t("notSet");
+  const pinToggle = document.getElementById("profileTogglePin");
+  if(pinToggle){
+    const el = document.getElementById("profilePin");
+    if(el) pinToggle.textContent = el.textContent === "****" ? t("show") : t("hide");
+  }
+  // Category labels
+  document.querySelectorAll(".cat-card .cat-label").forEach(el => {
+    const card = el.closest("[data-cat]");
+    if(card) el.textContent = catLabel(card.dataset.cat);
+  });
 }
 document.getElementById("langToggle")?.addEventListener("click",()=>{
   setLang(getLang()==="ar"?"en":"ar");
@@ -108,20 +175,23 @@ document.getElementById("loginOverlayLangToggle")?.addEventListener("click",()=>
   applyLang();
   renderCart();
 });
-document.getElementById("invBlockLangToggle")?.addEventListener("click",()=>{
-  setLang(getLang()==="ar"?"en":"ar");
-  applyLang();
-});
 
 /* AUTH */
 function loadSession(){
   const s=localStorage.getItem(SESSION_KEY);
-  if(s){try{const d=JSON.parse(s);currentCustomer={id:d.id,name:d.name,branch:d.branch||"",accountType:d.accountType||"",permissions:d.permissions||{}};currentCustomerPin=d.pin||"";updateAuthUI();if(currentCustomer.accountType!=="جرد مخزون")showCart();}catch(e){currentCustomer=null;}}
+  if(s){try{const d=JSON.parse(s);currentCustomer={id:d.id,name:d.name,branch:d.branch||"",accountType:d.accountType||"",permissions:d.permissions||{}};currentCustomerPin=d.pin||"";
+    // Block branch accounts from accessing inventory pages
+    if(currentCustomer.accountType === "حساب فرع"){
+      clearSession();
+      alert(t("inventoryAccountRequired"));
+      return;
+    }
+    updateAuthUI();showCart();}catch(e){currentCustomer=null;}}
 }
 function saveSession(c,p){
   currentCustomer=c;currentCustomerPin=p||"";
   localStorage.setItem(SESSION_KEY,JSON.stringify({id:c.id,name:c.name,branch:c.branch||"",pin:currentCustomerPin,accountType:c.accountType||"",permissions:c.permissions||{}}));
-  updateAuthUI();if(currentCustomer.accountType!=="جرد مخزون")showCart();
+  updateAuthUI();showCart();
 }
 function clearSession(){ currentCustomer=null;currentCustomerPin="";localStorage.removeItem(SESSION_KEY);updateAuthUI();hideCart(); }
 async function refreshCustomerFromFirestore(){
@@ -139,26 +209,16 @@ async function refreshCustomerFromFirestore(){
   }catch(e){console.warn("Customer refresh failed:",e);}
 }
 function updateAuthUI(){
-  const blockOverlay=document.getElementById("inventoryBlockOverlay");
   if(currentCustomer){
     if(loginBtn)loginBtn.style.display="none";
     if(userProfile)userProfile.style.display="inline-flex";
     document.getElementById("loggedInUser").textContent=currentCustomer.name;
     document.getElementById("profileName").textContent=currentCustomer.name;
-    document.getElementById("profileType").textContent=currentCustomer.accountType||"غير محدد";
+    document.getElementById("profileType").textContent=currentCustomer.accountType||t("notSet");
     document.getElementById("profileAvatar").textContent=(currentCustomer.name||"?")[0];
-    if(currentCustomer.accountType==="جرد مخزون"){
-      if(blockOverlay)blockOverlay.style.display="";
-      if(loginRequiredOverlay)loginRequiredOverlay.classList.add("hidden");
-      if(cartMain)cartMain.style.display="none";
-      if(cartCategoryFilter)cartCategoryFilter.style.display="none";
-    }else{
-      if(blockOverlay)blockOverlay.style.display="none";
-    }
   }else{
     if(loginBtn)loginBtn.style.display="inline-flex";
     if(userProfile)userProfile.style.display="none";
-    if(blockOverlay)blockOverlay.style.display="none";
   }
 }
 function showCart(){
@@ -203,7 +263,7 @@ function applyPermissions(){
   });
 }
 
-/* LOGIN (FIXED: fetches from Firestore) */
+/* LOGIN */
 async function loadCustomersFromFirestore(){
   customersCache=getLocalCustomers();
   try{
@@ -254,6 +314,11 @@ loginSubmitBtn?.addEventListener("click",()=>{
   if(!pin){loginError.textContent=t("enterPin");return;}
   const match=customersCache.find(c=>String(c.name||"").trim().toLowerCase()===name.trim().toLowerCase());
   if(!match){loginError.textContent=t("accountNotFound");return;}
+  // Block branch accounts from logging into inventory pages
+  if(match.accountType === "حساب فرع"){
+    loginError.textContent=t("inventoryAccountRequired");
+    return;
+  }
     if(String(match.pin)===pin){saveSession({id:match.id,name:match.name,branch:match.branch||"",accountType:match.accountType||at,permissions:match.permissions||{}},pin);closeLoginModal();}
   else{loginError.textContent=t("wrongPassword");}
 });
@@ -268,8 +333,8 @@ const profileDropdown=document.getElementById("profileDropdown");
 profileToggle?.addEventListener("click",e=>{e.stopPropagation();profileDropdown?.classList.toggle("show");});
 document.addEventListener("click",e=>{if(profileDropdown?.classList.contains("show")&&!profileDropdown.contains(e.target)&&e.target!==profileToggle)profileDropdown.classList.remove("show");});
 document.getElementById("profileLogoutBtn")?.addEventListener("click",()=>{profileDropdown?.classList.remove("show");if(confirm("هل تريد تسجيل الخروج؟"))clearSession();});
-document.getElementById("profileTogglePin")?.addEventListener("click",()=>{const el=document.getElementById("profilePin");if(!el)return;if(el.textContent==="****"){el.textContent=currentCustomerPin||"N/A";document.getElementById("profileTogglePin").textContent="إخفاء";}else{el.textContent="****";document.getElementById("profileTogglePin").textContent="إظهار";}});
-document.getElementById("profileChangePinBtn")?.addEventListener("click",async()=>{profileDropdown?.classList.remove("show");const np=prompt("كلمة المرور الجديدة:");if(!np){alert("الرجاء إدخال كلمة المرور");return;}currentCustomerPin=np;const s=JSON.parse(localStorage.getItem(SESSION_KEY)||"{}");s.pin=np;localStorage.setItem(SESSION_KEY,JSON.stringify(s));try{const{doc:d,updateDoc}=await import("https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js");const{db:dbRef}=await import("./firebase.js");await updateDoc(d(dbRef,"customers",currentCustomer.id),{pin:np});}catch(e){}alert("تم تغيير كلمة المرور");});
+document.getElementById("profileTogglePin")?.addEventListener("click",()=>{const el=document.getElementById("profilePin");if(!el)return;if(el.textContent==="****"){el.textContent=currentCustomerPin||"N/A";document.getElementById("profileTogglePin").textContent=t("hide");}else{el.textContent="****";document.getElementById("profileTogglePin").textContent=t("show");}});
+document.getElementById("profileChangePinBtn")?.addEventListener("click",async()=>{profileDropdown?.classList.remove("show");const np=prompt(t("changePinPrompt"));if(!np){alert(t("pinMustBeFour"));return;}currentCustomerPin=np;const s=JSON.parse(localStorage.getItem(SESSION_KEY)||"{}");s.pin=np;localStorage.setItem(SESSION_KEY,JSON.stringify(s));try{const{doc:d,updateDoc}=await import("https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js");const{db:dbRef}=await import("./firebase.js");await updateDoc(d(dbRef,"customers",currentCustomer.id),{pin:np});}catch(e){}alert(t("pinChanged"));});
 document.getElementById("profileInvoicesBtn")?.addEventListener("click",()=>{profileDropdown?.classList.remove("show");openInvoicesModal();});
 
 /* INVOICES MODAL */
@@ -278,7 +343,7 @@ function closeInvoicesModal(){if(!invoicesModal)return;invoicesModal.classList.r
 async function loadCustomerInvoices(){
   if(!currentCustomer||!invoicesList)return;
   try{const{collection:col,query:q,where:wh,orderBy:ob,getDocs:gd}=await import("https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js");const{db:d}=await import("./firebase.js");
-  let snap;try{snap=await gd(q(col(d,"invoices"),wh("customerId","==",currentCustomer.id),ob("createdAt","desc")));}catch(e){snap=await gd(q(col(d,"invoices"),wh("customerId","==",currentCustomer.id)));}
+  let snap;try{snap=await gd(q(col(d,"invoices"),wh("customerId","==",currentCustomer.id),wh("accountType","==","جرد مخزون"),ob("createdAt","desc")));}catch(e){snap=await gd(q(col(d,"invoices"),wh("customerId","==",currentCustomer.id),wh("accountType","==","جرد مخزون")));}
   if(snap.empty){invoicesList.innerHTML='<div class="empty-text">لا توجد فواتير</div>';return;}
   invoicesList.innerHTML="";
   snap.forEach(doc=>{const inv=doc.data();const div=document.createElement("div");div.className="invoice-history-card";
@@ -326,7 +391,6 @@ function buildCartCatCards(){
   });
   filter.querySelector(".cat-card[data-cat='all']")?.classList.add("active");
   applyPermissions();
-  // Restore active filter
   filter.querySelectorAll(".cat-card").forEach(c=>{
     c.classList.toggle("active", c.dataset.cat === cartCategory);
   });
@@ -347,7 +411,6 @@ function renderCart(){
   if(cart.length===0)cartItems.innerHTML=`<div class="cart-item"><div class="info"><h3>${t("cartEmpty")}</h3></div></div>`;
   else if(vis===0)cartItems.innerHTML=`<div class="cart-item"><div class="info"><h3>${t("noResults")}</h3></div></div>`;
   if(cartTotal)cartTotal.textContent=getCartTotalQty();
-  // Update mobile invoice modal total
   const invModalTotal=document.getElementById("invoiceModalTotal");
   if(invModalTotal)invModalTotal.textContent=getCartTotalQty();
   saveCart();
@@ -359,8 +422,6 @@ function decreaseQty(id){const i=findItem(id);if(!i)return;i.qty=getItemQty(i)-1
 function updateQty(id,v){const i=findItem(id);if(!i)return;const q=parseInt(v,10);i.qty=isNaN(q)||q<1?1:q;renderCart();}
 function deleteItem(id){cart=cart.filter(p=>String(p.id)!==String(id));renderCart();}
 
-/* CART CATEGORY FILTER - handlers attached dynamically in buildCartCatCards() */
-
 /* CLEAR CART */
 function isClearCartConfirmed(){return confirmClearInput&&confirmClearInput.value.trim().toLowerCase()==="yes";}
 function openClearCartModal(){if(cart.length===0){alert("السلة فارغة");return;}if(!clearCartModal||!confirmClearInput||!confirmClearCartButton)return;confirmClearInput.value="";confirmClearCartButton.disabled=true;clearCartModal.classList.add("active");clearCartModal.setAttribute("aria-hidden","false");setTimeout(()=>confirmClearInput.focus(),50);}
@@ -370,10 +431,8 @@ function clearCart(){cart=[];saveCart();renderCart();closeClearCartModal();}
 /* INVOICE */
 function makeInvoiceNumber(){let c=1;try{const v=localStorage.getItem(INV_COUNTER_KEY);if(v)c=parseInt(v,10)||1;}catch(e){}const n=String(c).padStart(4,"0");localStorage.setItem(INV_COUNTER_KEY,String(c+1));return`INV-${n}`;}
 function formatInvoiceDate(){return new Date().toLocaleString("en-GB",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});}
-function createInvoiceCells(item){const desc=item.description||"";const arName=item.name||"";return `<td class="invoice-check-cell"></td><td class="invoice-product-cell"><div class="invoice-product-main"><span class="invoice-product-number invoice-product-qty">${getItemQty(item)}</span><strong><bdi>${escapeHTML(desc)}</bdi></strong><span class="invoice-check-box"></span></div>${arName?`<div class="invoice-product-details" dir="rtl"><bdi>${escapeHTML(arName)}</bdi></div>`:""}</td>`;}
+function createInvoiceCells(item){const desc=item.description||"";const arName=item.name||"";return `<td class="invoice-check-cell"><span class="invoice-check-box"></span></td><td class="invoice-product-cell"><div class="invoice-product-main"><span class="invoice-product-number invoice-product-qty">${getItemQty(item)}</span><strong><bdi>${escapeHTML(desc)}</bdi></strong></div>${arName?`<div class="invoice-product-details" dir="rtl">${escapeHTML(arName)}</div>`:""}</td>`;}
 function createEmptyCells(){return '<td class="invoice-check-cell invoice-empty-cell"></td><td class="invoice-product-cell invoice-empty-cell"></td>';}
-function createNonCartCell(item){const desc=item.description||"";const arName=item.name||"";return `<td style="padding:2px 4px;font-size:10px;font-weight:800;color:#111;border:1px solid #222;text-align:left;line-height:1.3;"><bdi>${escapeHTML(desc)}</bdi>${arName?`<br><span style="font-size:10px;color:#333;font-weight:600;"><bdi>${escapeHTML(arName)}</bdi></span>`:""}</td><td style="padding:2px 4px;border:1px solid #222;text-align:center;font-size:10px;white-space:nowrap;vertical-align:middle;">&nbsp;</td>`;}
-function createEmptyNonCartCell(){return '<td style="padding:2px 4px;border:1px solid #222;"></td><td style="padding:2px 4px;border:1px solid #222;"></td>';}
 function createInvoiceRowsFromCart(){
   let items = [...cart];
   const groups = {};
@@ -393,7 +452,6 @@ function createInvoiceRowsFromCart(){
     }
     processed.add(cat);
   });
-  // Remaining categories not in CAT_ORDER
   Object.keys(groups).forEach(cat => {
     if(processed.has(cat)) return;
     const group = groups[cat];
@@ -422,142 +480,41 @@ function setFooterVisible(v){const s=invoiceTemplate?.querySelector(".invoice-su
 function getMaxHeight(){const w=invoiceTemplate?invoiceTemplate.scrollWidth:1120;return Math.floor(w*(A4_HEIGHT_MM/A4_WIDTH_MM))-24;}
 function splitPages(rows){const pages=[];const mh=getMaxHeight();let s=0;while(s<rows.length){let e=s+1;let lg=e;while(e<=rows.length){renderInvoiceRows(rows.slice(s,e));setFooterVisible(e===rows.length);if(invoiceTemplate.scrollHeight<=mh){lg=e;e++;}else break;}pages.push(rows.slice(s,lg));s=lg;}return pages;}
 function waitForImages(c){return Promise.all(Array.from(c.querySelectorAll("img")).map(i=>new Promise(r=>{if(i.complete){r();return;}i.onload=()=>r();i.onerror=()=>r();setTimeout(r,2000);})));}
-function renderNonCartRows(rows){
-  const tbody=document.getElementById("nonCartProducts");
-  if(!tbody)return;
-  tbody.innerHTML="";
-  rows.forEach(ri=>{
-    if(ri.type==="header"){
-      tbody.insertAdjacentHTML("beforeend",`<tr><td colspan="6" style="background:#d9d9d9;color:#111;border:1px solid #222;padding:4px 6px;font-size:12px;font-weight:900;text-align:center;">${ri.catName}</td></tr>`);
-    }else if(ri.type==="items"){
-      let h="";
-      (ri.items||[]).forEach(it=>{h+=createNonCartCell(it);});
-      for(let e=(ri.items||[]).length;e<3;e++)h+=createEmptyNonCartCell();
-      tbody.insertAdjacentHTML("beforeend",`<tr>${h}</tr>`);
-    }
-  });
-}
-function setInvoiceMainVisible(v){
-  const t=document.getElementById("invoiceTable");if(t)t.style.display=v?"":"none";
-  const s=invoiceTemplate?.querySelector(".invoice-summary-row");if(s)s.style.display=v?"":"none";
-  const d=invoiceTemplate?.querySelector(".invoice-delivery-info");if(d)d.style.display=v?"":"none";
-}
-function setTitleMode(stock){
-  const m=document.getElementById("invoiceTitleMain");
-  const st=document.getElementById("invoiceTitleStock");
-  if(m)m.style.display=stock?"none":"";
-  if(st)st.style.display=stock?"":"none";
-}
-function setSupervisorVisible(v){const s=document.getElementById("nonCartSupervisor");if(s)s.style.display=v?"grid":"none";}
-function getNonCartHeight(){const w=invoiceTemplate?invoiceTemplate.scrollWidth:1120;return Math.floor(w*(A4_HEIGHT_MM/A4_WIDTH_MM))-24;}
-function splitNonCartPages(rows){
-  const pages=[];const mh=getNonCartHeight();let s=0;
-  const nc=document.getElementById("nonCartSection");
-  if(!nc)return pages;
-  setInvoiceMainVisible(false);
-  setTitleMode(true);
-  nc.style.display="block";
-  setSupervisorVisible(false);
-  while(s<rows.length){
-    let e=s+1;let lg=e;
-    while(e<=rows.length){
-      renderNonCartRows(rows.slice(s,e));
-      setSupervisorVisible(e===rows.length);
-      if(invoiceTemplate.scrollHeight<=mh){lg=e;e++;}else break;
-    }
-    renderNonCartRows(rows.slice(s,lg));
-    pages.push(rows.slice(s,lg));
-    s=lg;
-  }
-  renderNonCartRows(rows.slice(0,0));
-  setSupervisorVisible(false);
-  nc.style.display="none";
-  setInvoiceMainVisible(true);
-  setTitleMode(false);
-  return pages;
-}
-function createNonCartRowsFromProducts(allProducts,cartIds){
-  const cartIdSet=new Set(cartIds.map(id=>String(id)));
-  const nonCart=allProducts.filter(p=>!cartIdSet.has(String(p.id)));
-  const groups={};
-  nonCart.forEach(p=>{
-    const cat=p.category||"Other";
-    if(!groups[cat])groups[cat]=[];
-    if(p.name||p.description)groups[cat].push(p);
-  });
-  const rows=[];
-  const processed=new Set();
-  CAT_ORDER.forEach(cat=>{
-    const grp=groups[cat];
-    if(!grp||grp.length===0)return;
-    rows.push({type:"header",catName:getCatMetaObj(cat).nameEn||CAT_EN_NAMES[cat]||cat});
-    for(let i=0;i<grp.length;i+=3)rows.push({type:"items",items:grp.slice(i,i+3)});
-    processed.add(cat);
-  });
-  Object.keys(groups).forEach(cat=>{
-    if(processed.has(cat))return;
-    const grp=groups[cat];
-    rows.push({type:"header",catName:getCatMetaObj(cat).nameEn||cat});
-    for(let i=0;i<grp.length;i+=3)rows.push({type:"items",items:grp.slice(i,i+3)});
-  });
-  return rows;
-}
-async function loadAllProducts(){
-  try{
-    const snap=await getDocs(collection(db,"products"));
-    return snap.docs.map(d=>{const x=d.data();return{id:d.id,...x};});
-  }catch(e){console.error("Error loading products:",e);return[];}
-}
 
 async function saveInvoiceToFirestore(invoiceNo,customerName){
-  try{const items=cart.map(it=>({id:it.id,name:it.name||"",description:it.description||"",code:it.code||"",category:it.category||"",image:it.image||"images/noimg.jpg",qty:getItemQty(it)}));const bn=currentCustomer?.branch||"";
-  await addDoc(collection(db,"invoices"),{invoiceNo,branchName:bn,customerId:currentCustomer?currentCustomer.id:"guest",customerName,accountType:currentCustomer?(currentCustomer.accountType||""):"",items,totalItems:cart.length,totalQty:getCartTotalQty(),createdAt:serverTimestamp(),date:new Date().toISOString()});
+  try{
+    const branchName=getSelectedBranch();
+    const items=cart.map(it=>({id:it.id,name:it.name||"",description:it.description||"",code:it.code||"",category:it.category||"",image:it.image||"images/noimg.jpg",qty:getItemQty(it)}));
+    await addDoc(collection(db,"invoices"),{invoiceNo,branchName,customerId:currentCustomer?currentCustomer.id:"guest",customerName,accountType:"جرد مخزون",items,totalItems:cart.length,totalQty:getCartTotalQty(),createdAt:serverTimestamp(),date:new Date().toISOString()});
   }catch(e){console.error("Error saving invoice:",e);}
 }
 
 async function createInvoice(){
   if(cart.length===0){alert("السلة فارغة");return;}
   if(!currentCustomer){alert("سجل الدخول أولاً");openLoginModal();return;}
-  const bn=currentCustomer?.branch||"";
+  const branchName=getSelectedBranch();
+  if(!branchName){alert(t("chooseBranch"));return;}
   const no=makeInvoiceNumber();
   document.getElementById("invoiceNo").textContent=no;
   document.getElementById("invoiceDate").textContent=formatInvoiceDate();
-  document.getElementById("invoiceCustomer").textContent=currentCustomer.name;
+  const custEl=document.getElementById("invoiceCustomer");
+  if(custEl)custEl.textContent=currentCustomer.name;
   document.getElementById("invoiceTotal").textContent=cart.length;
   document.getElementById("invoiceQty").textContent=getCartTotalQty();
-  const rv=document.getElementById("invRecvBranch");if(rv){const p=bn.split(" - ");rv.textContent=p.length===2?p[1]+" - "+p[0]:bn;}
+  const rv=document.getElementById("invRecvBranch");if(rv){const p=branchName.split(" - ");rv.textContent=p.length===2?p[1]+" - "+p[0]:branchName;}
   const rows=createInvoiceRowsFromCart();const pages=splitPages(rows);
   invoiceTemplate.offsetHeight;
   await waitForImages(invoiceTemplate);
-  const allProducts=await loadAllProducts();
-  const nonCartRows=createNonCartRowsFromProducts(allProducts,cart.map(it=>it.id));
-  const nonCartPages=splitNonCartPages(nonCartRows);
   const pdf=new window.jspdf.jsPDF("P","mm","A4");
   for(let pi=0;pi<pages.length;pi++){
-    setTitleMode(false);
     renderInvoiceRows(pages[pi]);setFooterVisible(pi===pages.length-1);
+    const th2=invoiceTemplate?.querySelector("#invoiceTable thead");if(th2)th2.style.display="none";
     const canvas=await html2canvas(invoiceTemplate,{scale:2,useCORS:true,backgroundColor:"#ffffff",windowWidth:invoiceTemplate.scrollWidth,windowHeight:invoiceTemplate.scrollHeight});
     const imgData=canvas.toDataURL("image/png");const imgH=Math.min((canvas.height*A4_WIDTH_MM)/canvas.width,A4_HEIGHT_MM);
     if(pi>0)pdf.addPage();pdf.addImage(imgData,"PNG",0,0,A4_WIDTH_MM,imgH);
   }
-  for(let pi=0;pi<nonCartPages.length;pi++){
-    const nc=document.getElementById("nonCartSection");
-    if(nc)nc.style.display="block";
-    setInvoiceMainVisible(false);
-    setTitleMode(true);
-    setSupervisorVisible(pi===nonCartPages.length-1);
-    renderNonCartRows(nonCartPages[pi]);
-    const th3=invoiceTemplate?.querySelector("#invoiceTable thead");if(th3)th3.style.display="none";
-    const canvas=await html2canvas(invoiceTemplate,{scale:2,useCORS:true,backgroundColor:"#ffffff",windowWidth:invoiceTemplate.scrollWidth,windowHeight:invoiceTemplate.scrollHeight});
-    const imgData=canvas.toDataURL("image/png");const imgH=Math.min((canvas.height*A4_WIDTH_MM)/canvas.width,A4_HEIGHT_MM);
-    pdf.addPage();pdf.addImage(imgData,"PNG",0,0,A4_WIDTH_MM,imgH);
-  }
-  const nc=document.getElementById("nonCartSection");if(nc)nc.style.display="none";
-  setInvoiceMainVisible(true);
-  setSupervisorVisible(false);
-  setTitleMode(false);
   setFooterVisible(true);
-  pdf.save(`${bn}-${no}.pdf`);
+  pdf.save(`${branchName}-${no}.pdf`);
   await saveInvoiceToFirestore(no,currentCustomer.name);
 }
 
@@ -568,7 +525,6 @@ if(cartItems){
 }
 if(cartSearch)cartSearch.addEventListener("input",renderCart);
 if(createInvoiceButton)createInvoiceButton.addEventListener("click",createInvoice);
-document.getElementById("whatsappBtn")?.addEventListener("click",()=>window.open("https://chat.whatsapp.com/FQJrlGGpUNoJZUmAv4Eetd?s=sw&p=a&ilr=4","_blank"));
 if(clearCartButton)clearCartButton.addEventListener("click",openClearCartModal);
 
 // Mobile: FAB + invoice modal
@@ -576,7 +532,6 @@ const invoiceFab=document.getElementById("invoiceFab");
 const invoiceModal=document.getElementById("invoiceModal");
 const invoiceModalClose=document.getElementById("invoiceModalClose");
 const createInvoiceMobile=document.getElementById("createInvoiceMobile");
-const whatsappMobile=document.getElementById("whatsappMobile");
 const clearCartTopBtn=document.getElementById("clearCartTopBtn");
 
 function openInvoiceModal(){if(!invoiceModal)return;const t=document.getElementById("invoiceModalTotal");if(t)t.textContent=getCartTotalQty();invoiceModal.hidden=false;invoiceModal.setAttribute("aria-hidden","false");requestAnimationFrame(()=>invoiceModal.classList.add("active"));}
@@ -585,7 +540,6 @@ invoiceFab?.addEventListener("click",openInvoiceModal);
 invoiceModalClose?.addEventListener("click",closeInvoiceModal);
 invoiceModal?.addEventListener("click",e=>{if(e.target===invoiceModal)closeInvoiceModal();});
 createInvoiceMobile?.addEventListener("click",()=>{closeInvoiceModal();createInvoice();});
-whatsappMobile?.addEventListener("click",()=>window.open("https://chat.whatsapp.com/FQJrlGGpUNoJZUmAv4Eetd?s=sw&p=a&ilr=4","_blank"));
 clearCartTopBtn?.addEventListener("click",openClearCartModal);
 if(confirmClearInput&&confirmClearCartButton){confirmClearInput.addEventListener("input",()=>{confirmClearCartButton.disabled=!isClearCartConfirmed();});confirmClearInput.addEventListener("keydown",e=>{if(e.key==="Enter"&&isClearCartConfirmed())clearCart();});}
 if(cancelClearCartButton)cancelClearCartButton.addEventListener("click",closeClearCartModal);
@@ -613,10 +567,6 @@ function loadCategoryCounts(){
     badge.style.display = count > 0 ? "" : "none";
   });
 }
-/* Inventory block overlay */
-document.getElementById("invBlockLogoutBtn")?.addEventListener("click",()=>{ clearSession(); });
-document.getElementById("invBlockGoInventory")?.addEventListener("click",()=>{ window.location.href="inventory-cart.html"; });
-
 applyLang();
 loadSession();
 (async function(){ await loadCategoriesFromFirestore(); populateBranchDropdown(); renderCart(); if(currentCustomer)await refreshCustomerFromFirestore(); })();
