@@ -1,66 +1,111 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Management</title>
+  <title>إدارة المدراء</title>
   <link rel="icon" type="image/png" href="images/icon.png">
   <link rel="stylesheet" href="css/style.css?v=20260714-2">
-  <style>
-    .admin-mgr-toggle{background:transparent;color:var(--dark);border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:all .3s;}
-    .admin-mgr-toggle:hover{color:var(--accent);transform:translateY(-1px);}
-    @media(max-width:768px){.admin-mgr-toggle{padding:2px 6px;font-size:11px;border-radius:6px;}}
-  </style>
-<body>
+  <link rel="stylesheet" href="css/app.css?v=20260802">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="app-v2">
+
+  <!-- ========== APP HEADER (sticky) ========== -->
+  <header class="app-header">
+    <div class="app-header__inner">
+      <button class="icon-btn" id="menuBtn" type="button" aria-label="القائمة"><i data-lucide="menu"></i></button>
+      <a href="dashboard.html" class="app-logo-link"><img src="images/logo.png" class="app-logo" alt="سمسم"></a>
+      <div class="app-actions" style="margin-inline-start:auto;">
+        <button class="icon-btn icon-btn--label" id="adminMgrLangToggleMain" type="button"><i data-lucide="globe"></i><span>EN</span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== DRAWER ========== -->
+  <aside class="app-drawer" id="appDrawer" aria-hidden="true">
+    <div class="app-drawer__header">
+      <img src="images/logo.png" alt="سمسم">
+      <button class="app-drawer__close" id="appDrawerClose" type="button" aria-label="إغلاق"><i data-lucide="x"></i></button>
+    </div>
+    <nav class="app-drawer__nav">
+      <a class="drawer-link" href="index.html" data-i18n-menu="menuStore"><i data-lucide="store"></i><span class="drawer-label">المتجر</span></a>
+
+      <div class="drawer-group open">
+        <button class="drawer-toggle" type="button" data-i18n-menu="menuCart"><i data-lucide="shopping-cart"></i><span class="drawer-label">السلة</span><span class="drawer-arrow"><i data-lucide="chevron-right"></i></span></button>
+        <div class="drawer-submenu">
+          <a href="cart.html" data-i18n-menu="menuCartPurchase"><i data-lucide="shopping-bag"></i><span class="drawer-label">سلة المشتريات</span></a>
+          <a href="inventory-cart.html" data-i18n-menu="menuCartInventory"><i data-lucide="package"></i><span class="drawer-label">سلة الجرد</span></a>
+        </div>
+      </div>
+
+      <div class="drawer-group">
+        <button class="drawer-toggle" type="button" data-i18n-menu="menuInvoices"><i data-lucide="file-text"></i><span class="drawer-label">الفواتير</span><span class="drawer-arrow"><i data-lucide="chevron-right"></i></span></button>
+        <div class="drawer-submenu">
+          <a href="invoices-view.html" data-i18n-menu="menuInvoicesBranch"><i data-lucide="building-2"></i><span class="drawer-label">فواتير الفروع</span></a>
+          <a href="inventory-view.html" data-i18n-menu="menuInvoicesInventory"><i data-lucide="boxes"></i><span class="drawer-label">فواتير الجرد</span></a>
+        </div>
+      </div>
+
+      <div class="drawer-group open">
+        <button class="drawer-toggle" type="button" data-i18n-menu="menuAdmin"><i data-lucide="settings"></i><span class="drawer-label">الإدارة</span><span class="drawer-arrow"><i data-lucide="chevron-right"></i></span></button>
+        <div class="drawer-submenu">
+          <a href="admin.html" data-i18n-menu="menuAdminGeneral"><i data-lucide="sliders-horizontal"></i><span class="drawer-label">إدارة عامة</span></a>
+          <a class="is-active" href="admins.html" data-i18n-menu="menuAdminManagers"><i data-lucide="shield-check"></i><span class="drawer-label">إدارة المدراء</span></a>
+          <a href="statistics.html" data-i18n-menu="menuAdminStats"><i data-lucide="bar-chart-3"></i><span class="drawer-label">إحصائيات الطلبات</span></a>
+        </div>
+      </div>
+    </nav>
+  </aside>
+  <div class="app-drawer__backdrop" id="appDrawerBackdrop"></div>
 
 <!-- LOGIN SCREEN -->
-<section id="loginScreen" class="admin-login-screen" style="display:flex;">
+<section id="loginScreen" class="admin-login-screen" style="display:flex;position:relative;">
   <form id="loginForm" class="admin-login-card" autocomplete="off">
-    <button id="adminMgrLangToggle" class="admin-mgr-toggle" type="button" style="position:absolute;top:12px;right:12px;">EN</button>
+    <button id="adminMgrLangToggle" class="icon-btn icon-btn--label" type="button" style="position:absolute;top:16px;left:16px;width:auto;margin:0;padding:8px 10px;background:transparent;border:none;box-shadow:none;"><i data-lucide="globe"></i><span>EN</span></button>
     <img src="images/logo.png" alt="Logo" onerror="this.style.display='none'">
-    <h1 id="adminsLoginTitle">Admin Management</h1>
-    <p id="adminsLoginSubtitle">Enter username and password</p>
+    <h1 id="adminsLoginTitle">إدارة المدراء</h1>
+    <p id="adminsLoginSubtitle">أدخل اسم المستخدم وكلمة المرور</p>
     <input type="text" id="loginUser" placeholder="Username" autocomplete="username" spellcheck="false">
     <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
-    <button type="submit" id="adminsLoginBtn">Login</button>
+    <button type="submit" id="adminsLoginBtn"><i data-lucide="log-in"></i><span>دخول</span></button>
     <div id="loginError" class="admin-login-error"></div>
   </form>
 </section>
 
 <!-- MAIN PANEL -->
 <div class="admin-box" id="mainPanel" style="display:none;">
-  <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
-    <a href="dashboard.html"><img src="images/logo.png" class="logo" alt="Logo" style="width:100px;height:auto;"></a>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+    <a href="dashboard.html"><img src="images/logo.png" class="logo" alt="Logo" style="width:80px;height:auto;"></a>
     <div style="flex:1;min-width:0;">
-      <div style="font-size:18px;font-weight:800;color:var(--dark);" id="profileDisplay"></div>
-      <div style="font-size:13px;color:var(--secondary);" id="adminsPanelSubtitle">Admin Management</div>
+      <div style="font-size:16px;font-weight:800;color:var(--v2-text);" id="profileDisplay"></div>
+      <div style="font-size:12px;color:var(--v2-muted);" id="adminsPanelSubtitle">إدارة المدراء</div>
     </div>
-    <button id="profileEditBtn" type="button" style="padding:6px 14px;border:1.5px solid var(--accent);border-radius:8px;background:var(--white);color:var(--accent);font-weight:700;cursor:pointer;font-size:13px;" data-i18n="editProfile">Edit Profile</button>
-    <button id="adminMgrLangToggleMain" class="admin-mgr-toggle" type="button">EN</button>
-    <button id="logoutBtn" type="button" style="padding:6px 14px;border:1.5px solid #dc3545;border-radius:8px;background:var(--white);color:#dc3545;font-weight:700;cursor:pointer;font-size:13px;" data-i18n="logout">Logout</button>
+    <button id="profileEditBtn" type="button" class="btn-subtle"><i data-lucide="pencil"></i><span data-i18n="editProfile">تعديل الملف</span></button>
+    <button id="logoutBtn" type="button" class="btn-danger" style="padding:8px 14px;"><i data-lucide="log-out"></i><span data-i18n="logout">تسجيل الخروج</span></button>
   </div>
 
-  <div id="profileEditSection" style="display:none;margin-bottom:20px;padding:16px;background:var(--white);border-radius:var(--radius);border:1.5px solid var(--accent);">
-    <h3 style="margin:0 0 12px;color:var(--dark);" data-i18n="editProfile">Edit Profile</h3>
+  <div id="profileEditSection" style="display:none;margin-bottom:16px;padding:14px;background:var(--v2-card);border-radius:var(--v2-radius);border:1.5px solid var(--v2-primary);">
+    <h3 style="margin:0 0 12px;color:var(--v2-text);" data-i18n="editProfile">تعديل الملف الشخصي</h3>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-      <input type="text" id="editProfileUser" placeholder="New username" style="flex:1;min-width:120px;">
-      <input type="password" id="editProfilePass" placeholder="New password" style="flex:1;min-width:120px;">
+      <input type="text" id="editProfileUser" placeholder="New username" style="flex:1;min-width:120px;padding:8px;border:1.5px solid rgba(122,102,85,.2);border-radius:6px;font-size:13px;">
+      <input type="password" id="editProfilePass" placeholder="New password" style="flex:1;min-width:120px;padding:8px;border:1.5px solid rgba(122,102,85,.2);border-radius:6px;font-size:13px;">
     </div>
-    <button id="saveProfileBtn" type="button" style="padding:8px 20px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;" data-i18n="save">Save</button>
+    <button id="saveProfileBtn" type="button" class="btn-primary" style="padding:8px 20px;"><i data-lucide="save"></i><span data-i18n="save">حفظ</span></button>
   </div>
 
   <hr style="border:none;border-top:1px solid rgba(122,102,85,.15);margin:16px 0;">
 
-  <h2 style="color:var(--dark);margin-bottom:16px;">Manage Admins</h2>
+  <h2 style="color:var(--v2-text);margin-bottom:16px;">إدارة المدراء</h2>
   <div id="adminsList"></div>
 
   <!-- ADD ADMIN FORM -->
-  <div style="margin-top:16px;padding:16px;background:var(--white);border-radius:var(--radius);border:1.5px solid rgba(199,178,153,.25);">
-    <h3 style="margin:0 0 12px;color:var(--dark);" data-i18n="addAdmin">Add New Admin</h3>
+  <div style="margin-top:16px;padding:16px;background:var(--v2-card);border-radius:var(--v2-radius);border:1.5px solid rgba(199,178,153,.25);">
+    <h3 style="margin:0 0 12px;color:var(--v2-text);" data-i18n="addAdmin">إضافة مدير جديد</h3>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-      <input type="text" id="newAdminUser" placeholder="Username" style="flex:1;min-width:120px;">
-      <input type="password" id="newAdminPass" placeholder="Password" style="flex:1;min-width:120px;">
-      <button id="addAdminBtn" type="button" style="padding:8px 20px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;">➕ Add</button>
+      <input type="text" id="newAdminUser" placeholder="Username" style="flex:1;min-width:120px;padding:8px;border:1.5px solid rgba(122,102,85,.2);border-radius:6px;font-size:13px;">
+      <input type="password" id="newAdminPass" placeholder="Password" style="flex:1;min-width:120px;padding:8px;border:1.5px solid rgba(122,102,85,.2);border-radius:6px;font-size:13px;">
+      <button id="addAdminBtn" type="button" class="btn-primary"><i data-lucide="user-plus"></i><span>إضافة</span></button>
     </div>
   </div>
 </div>
@@ -68,7 +113,7 @@
 <script type="module">
 import { db } from "./js/firebase.js";
 import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-import { getLang, setLang, t, catLabel, applyMenuLang } from "./js/i18n.js";
+import { getLang, setLang, t, catLabel, setLabel, applyMenuLang } from "./js/i18n.js";
 
 const adminmanagerColl = collection(db, "adminmanager");
 const adminsColl = collection(db, "admins");
@@ -91,19 +136,19 @@ const adminsList = document.getElementById("adminsList");
 function applyAdminMgrLang(){
   const lang=getLang();const isEn=lang==="en";
   document.documentElement.lang=lang;document.documentElement.dir=isEn?"ltr":"rtl";
-  const tb=document.getElementById("adminMgrLangToggle");if(tb)tb.textContent=isEn?"🌐 عربي":"🌐 EN";
-  const tb2=document.getElementById("adminMgrLangToggleMain");if(tb2)tb2.textContent=isEn?"🌐 عربي":"🌐 EN";
+  const tb=document.getElementById("adminMgrLangToggle");if(tb)setLabel(tb,isEn?"عربي":"EN");
+  const tb2=document.getElementById("adminMgrLangToggleMain");if(tb2)setLabel(tb2,isEn?"عربي":"EN");
   const t1=document.getElementById("adminsLoginTitle");if(t1)t1.textContent=t("adminManagement");
   const t2=document.getElementById("adminsLoginSubtitle");if(t2)t2.textContent=t("enterUserPass");
-  const t3=document.getElementById("adminsLoginBtn");if(t3)t3.textContent=t("login");
+  const t3=document.getElementById("adminsLoginBtn");if(t3)setLabel(t3,t("login"));
   const t4=document.getElementById("adminsPanelSubtitle");if(t4)t4.textContent=t("adminManagement");
-  document.querySelectorAll("[data-i18n]").forEach(el=>{const k=el.getAttribute("data-i18n");if(t(k)!==k)el.textContent=t(k);});
+  document.querySelectorAll("[data-i18n]").forEach(el=>{const k=el.getAttribute("data-i18n");if(t(k)!==k)setLabel(el,t(k));});
   loginUser.placeholder=t("username");loginPass.placeholder=t("password");
   const ph1=document.getElementById("editProfileUser");if(ph1)ph1.placeholder=t("newUsername");
   const ph2=document.getElementById("editProfilePass");if(ph2)ph2.placeholder=t("newPassword");
   const ph3=document.getElementById("newAdminUser");if(ph3)ph3.placeholder=t("username");
   const ph4=document.getElementById("newAdminPass");if(ph4)ph4.placeholder=t("password");
-  const ab=document.getElementById("addAdminBtn");if(ab)ab.innerHTML=t("add")?'➕ '+t("add"):'➕ Add';
+  const ab=document.getElementById("addAdminBtn");if(ab)setLabel(ab,t("addAdminBtn"));
   applyMenuLang();
 }
 
@@ -134,7 +179,7 @@ loginForm.addEventListener("submit", async e => {
 });
 
 function updateProfile(){
-  profileDisplay.textContent = "👤 " + (currentSuperAdmin?.username || "");
+  profileDisplay.innerHTML = currentSuperAdmin ? `<i data-lucide="user-cog"></i> ${escapeHTML(currentSuperAdmin.username || "")}` : "";
 }
 
 document.getElementById("logoutBtn").addEventListener("click", () => {
@@ -216,70 +261,70 @@ function catLabelAdmin(cat){
 async function renderAdmins(){
   if(!adminsList) return;
   await loadAdminMgrCats();
-  adminsList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--secondary);">' + t("loading") + '...</div>';
+  adminsList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--v2-muted);">' + t("loading") + '...</div>';
   try {
     const snap = await getDocs(adminsColl);
     adminsList.innerHTML = "";
-    if(snap.empty){ adminsList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--secondary);">' + t("noAdmins") + '</div>'; return; }
+    if(snap.empty){ adminsList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--v2-muted);">' + t("noAdmins") + '</div>'; return; }
     snap.forEach(d => {
       const data = d.data();
       const adminId = d.id;
       const card = document.createElement("div");
       card.className = "customer-admin-card";
-      
+
       const perms = data.permissions || {};
       let catPerms = perms.categories || {};
       let prodPerms = perms.canAddProducts || {};
       const canManageCust = perms.canManageCustomers || false;
-      
-      card.innerHTML = '<div class="cust-header" style="cursor:pointer;"><span class="admin-expand-arrow" style="font-size:10px;margin-inline-end:8px;">\u25B6</span><strong>\u{1F511} ' + escapeHTML(data.username) + '</strong></div><div class="cust-invoices" style="display:none;margin-top:8px;"></div>';
-      
+
+      card.innerHTML = '<div class="cust-header" style="cursor:pointer;"><span class="admin-expand-arrow" style="font-size:10px;margin-inline-end:8px;"><i data-lucide="chevron-right"></i></span><strong><i data-lucide="shield-check"></i> ' + escapeHTML(data.username) + '</strong></div><div class="cust-invoices" style="display:none;margin-top:8px;"></div>';
+
       const header = card.querySelector(".cust-header");
       const expandArrow = card.querySelector(".admin-expand-arrow");
       const detailsDiv = card.querySelector(".cust-invoices");
-      
+
       header.addEventListener("click", () => {
         const isOpen = detailsDiv.style.display !== "none";
-        if(isOpen){ detailsDiv.style.display = "none"; expandArrow.textContent = "\u25B6"; return; }
-        expandArrow.textContent = "\u25BC";
-        
+        if(isOpen){ detailsDiv.style.display = "none"; expandArrow.innerHTML = '<i data-lucide="chevron-right"></i>'; return; }
+        expandArrow.innerHTML = '<i data-lucide="chevron-down"></i>';
+
         // Build permission UI dynamically when opened (to get fresh cat list)
         let html = '';
-        
+
         // Section 1: Category visibility
-        html += '<div class="perm-header"><span>📂 ' + t("categoryVisibility") + '</span></div>';
+        html += '<div class="perm-header"><span><i data-lucide="folder-open"></i> ' + t("categoryVisibility") + '</span></div>';
         _catsCache.forEach(cat => {
           const catKey = cat.key || cat;
           const checked = catPerms[catKey] !== false;
           html += '<div class="perm-toggle-row"><span class="perm-cat-name">' + catLabelAdmin(cat) + '</span><label class="perm-toggle-switch"><input type="checkbox" class="perm-cat-cb" data-cat="' + catKey + '" ' + (checked?'checked':'') + '><span class="perm-toggle-slider"></span></label></div>';
         });
-        
+
         // Section 2: Product add/edit permissions per category
-        html += '<div class="perm-header" style="margin-top:10px;"><span>🛒 ' + t("canAddProducts") + '</span></div>';
+        html += '<div class="perm-header" style="margin-top:10px;"><span><i data-lucide="shopping-cart"></i> ' + t("canAddProducts") + '</span></div>';
         _catsCache.forEach(cat => {
           const catKey = cat.key || cat;
           const checked = prodPerms[catKey] || false;
           html += '<div class="perm-toggle-row"><span class="perm-cat-name">' + catLabelAdmin(cat) + '</span><label class="perm-toggle-switch"><input type="checkbox" class="perm-prod-cb" data-cat="' + catKey + '" ' + (checked?'checked':'') + '><span class="perm-toggle-slider"></span></label></div>';
         });
-        
+
         // Section 3: Customer management
-        html += '<div class="perm-toggle-row" style="margin-top:6px;"><span class="perm-cat-name">👥 ' + t("manageCustomers") + '</span><label class="perm-toggle-switch"><input type="checkbox" id="permCust-' + adminId + '" ' + (canManageCust?'checked':'') + '><span class="perm-toggle-slider"></span></label></div>';
-        
+        html += '<div class="perm-toggle-row" style="margin-top:6px;"><span class="perm-cat-name"><i data-lucide="users"></i> ' + t("manageCustomers") + '</span><label class="perm-toggle-switch"><input type="checkbox" id="permCust-' + adminId + '" ' + (canManageCust?'checked':'') + '><span class="perm-toggle-slider"></span></label></div>';
+
         // Save permissions button
-        html += '<button class="save-perm-btn" type="button" style="margin-top:12px;padding:8px 20px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:800;cursor:pointer;font-size:13px;">💾 ' + t("savePerms") + '</button>';
-        
+        html += '<button class="save-perm-btn" type="button" style="margin-top:12px;padding:8px 20px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:800;cursor:pointer;font-size:13px;"><i data-lucide="save"></i> ' + t("savePerms") + '</button>';
+
         // Section 4: Edit admin details
         html += '<hr style="margin:16px 0;border:none;border-top:1px solid rgba(199,178,153,.2);">';
         html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">';
         html += '<input type="text" class="edit-admin-user" value="' + escapeHTML(data.username) + '" placeholder="' + escapeHTML(t("username")) + '" style="flex:1;min-width:100px;padding:8px 12px;border:1.5px solid rgba(122,102,85,.2);border-radius:8px;font-size:13px;outline:none;">';
         html += '<input type="password" class="edit-admin-pass" placeholder="' + escapeHTML(t("newPassword")) + '" style="flex:1;min-width:100px;padding:8px 12px;border:1.5px solid rgba(122,102,85,.2);border-radius:8px;font-size:13px;outline:none;">';
-        html += '<button class="save-admin-btn" type="button" style="padding:8px 18px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:800;cursor:pointer;font-size:13px;">💾 ' + t("save") + '</button>';
+        html += '<button class="save-admin-btn" type="button" style="padding:8px 18px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:800;cursor:pointer;font-size:13px;"><i data-lucide="save"></i> ' + t("save") + '</button>';
         html += '</div>';
-        html += '<button class="del-admin-btn" type="button" style="padding:8px 18px;border:none;border-radius:8px;background:rgba(220,53,69,.1);color:#dc3545;font-weight:800;cursor:pointer;font-size:13px;">🗑 ' + t("deleteBtn") + '</button>';
-        
+        html += '<button class="del-admin-btn" type="button" style="padding:8px 18px;border:none;border-radius:8px;background:rgba(220,53,69,.1);color:#dc3545;font-weight:800;cursor:pointer;font-size:13px;"><i data-lucide="trash-2"></i> ' + t("deleteBtn") + '</button>';
+
         detailsDiv.innerHTML = html;
         detailsDiv.style.display = "block";
-        
+
         // Save permissions handler
         detailsDiv.querySelector(".save-perm-btn").addEventListener("click", async () => {
           const newPerms = { categories: {}, canAddProducts: {}, canManageCustomers: false };
@@ -294,7 +339,7 @@ async function renderAdmins(){
             alert(t("permsSaved") + " " + data.username);
           } catch(e) { alert(t("errorOccurredShort") + ": " + e.message); }
         });
-        
+
         // Save admin (username/password) handler
         detailsDiv.querySelector(".save-admin-btn").addEventListener("click", async () => {
           const nu = detailsDiv.querySelector(".edit-admin-user").value.trim();
@@ -311,7 +356,7 @@ async function renderAdmins(){
             alert(t("profileUpdated"));
           } catch(e) { alert(t("errorOccurredShort") + ": " + e.message); }
         });
-        
+
         // Delete admin handler
         detailsDiv.querySelector(".del-admin-btn").addEventListener("click", async () => {
           if(!confirm(t("deleteConfirm") + " " + data.username + "?")) return;
@@ -319,7 +364,7 @@ async function renderAdmins(){
           catch(e) { alert(t("errorOccurredShort") + ": " + e.message); }
         });
       });
-      
+
       adminsList.appendChild(card);
     });
   } catch(e) { adminsList.innerHTML = '<div style="text-align:center;padding:20px;color:#dc3545;">' + t("errorOccurred") + '</div>'; }
@@ -330,58 +375,6 @@ function escapeHTML(v){ return String(v??"").replace(/&/g,"&amp;").replace(/</g,
 applyAdminMgrLang();
 </script>
 
-<button class="dash-menu-btn" id="dashMenuBtn" aria-label="القائمة"><span></span><span></span><span></span></button>
-<div class="dash-menu-dropdown" id="dashMenuDropdown">
-  <a href="index.html" data-i18n-menu="menuStore"><span class="dash-icon">🛒</span> المتجر</a>
-  <div class="dash-group">
-    <div class="dash-toggle" data-i18n-menu="menuCart"><span class="dash-icon">📋</span> السلة <span class="dash-arrow">▶</span></div>
-    <div class="dash-submenu">
-      <a href="cart.html" data-i18n-menu="menuCartPurchase"><span class="dash-icon">🛍️</span> سلة المشتريات</a>
-      <a href="inventory-cart.html" data-i18n-menu="menuCartInventory"><span class="dash-icon">📦</span> سلة الجرد</a>
-    </div>
-  </div>
-  <div class="dash-group">
-    <div class="dash-toggle" data-i18n-menu="menuInvoices"><span class="dash-icon">📄</span> الفواتير <span class="dash-arrow">▶</span></div>
-    <div class="dash-submenu">
-      <a href="invoices-view.html" data-i18n-menu="menuInvoicesBranch"><span class="dash-icon">🏪</span> فواتير الفروع</a>
-      <a href="inventory-view.html" data-i18n-menu="menuInvoicesInventory"><span class="dash-icon">📦</span> فواتير الجرد</a>
-    </div>
-  </div>
-  <div class="dash-group">
-    <div class="dash-toggle" data-i18n-menu="menuAdmin"><span class="dash-icon">⚙️</span> الإدارة <span class="dash-arrow">▶</span></div>
-    <div class="dash-submenu">
-      <a href="admin.html" data-i18n-menu="menuAdminGeneral"><span class="dash-icon">🛠️</span> إدارة عامة</a>
-      <a href="admins.html" data-i18n-menu="menuAdminManagers"><span class="dash-icon">🔐</span> إدارة المدراء</a>
-      <a href="statistics.html" data-i18n-menu="menuAdminStats"><span class="dash-icon">📊</span> إحصائيات الطلبات</a>
-    </div>
-  </div>
-</div>
-<script>
-document.addEventListener("click",function(e){
-  var btn=document.getElementById("dashMenuBtn"),menu=document.getElementById("dashMenuDropdown");
-  if(!btn||!menu)return;
-  if(btn.contains(e.target)){btn.classList.toggle("active");menu.classList.toggle("show");}
-  else if(menu.contains(e.target)){
-    var toggle=e.target.closest(".dash-toggle");
-    if(toggle){e.stopPropagation();var sub=toggle.nextElementSibling;if(sub&&sub.classList.contains("dash-submenu")){sub.classList.toggle("open");toggle.classList.toggle("open");}}
-  }
-  else{btn.classList.remove("active");menu.classList.remove("show");}
-});
-(function(){
-  var LANG_KEY="sallah_lang";
-  function getLang(){return localStorage.getItem(LANG_KEY)||"ar";}
-  var menuT={ar:{menuStore:"المتجر",menuCart:"السلة",menuInvoices:"الفواتير",menuAdmin:"الإدارة",menuCartPurchase:"سلة المشتريات",menuCartInventory:"سلة الجرد",menuInvoicesBranch:"فواتير الفروع",menuInvoicesInventory:"فواتير الجرد",menuAdminGeneral:"إدارة عامة",menuAdminManagers:"إدارة المدراء",menuAdminStats:"إحصائيات الطلبات"},en:{menuStore:"Store",menuCart:"Cart",menuInvoices:"Invoices",menuAdmin:"Admin",menuCartPurchase:"Purchase Cart",menuCartInventory:"Inventory Cart",menuInvoicesBranch:"Branch Invoices",menuInvoicesInventory:"Inventory Invoices",menuAdminGeneral:"General Admin",menuAdminManagers:"Admin Management",menuAdminStats:"Order Statistics"}};
-  function applyMenu(){
-    var lang=getLang();var tr=menuT[lang]||menuT.ar;
-    document.querySelectorAll("#dashMenuDropdown a, #dashMenuDropdown .dash-toggle").forEach(function(el){
-      var key=el.getAttribute("data-i18n-menu");if(!key||!tr[key])return;
-      var icon=el.querySelector(".dash-icon");var iconHtml=icon?icon.outerHTML:"";
-      var arrow=el.querySelector(".dash-arrow");var arrowHtml=arrow?arrow.outerHTML:"";
-      el.innerHTML=iconHtml+" "+tr[key]+" "+arrowHtml;
-    });
-  }
-  applyMenu();
-})();
-</script>
+  <script type="module" src="js/chrome.js?v=20260802"></script>
 </body>
 </html>

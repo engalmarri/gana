@@ -5,139 +5,206 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>لوحة التحكم / Dashboard</title>
   <link rel="icon" type="image/png" href="images/icon.png">
+  <link rel="stylesheet" href="css/style.css?v=20260714-2">
+  <link rel="stylesheet" href="css/app.css?v=20260802">
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: linear-gradient(135deg, #705f34 0%, #325247 50%, #414935 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: Arial, 'Segoe UI', Tahoma, sans-serif;
-      padding: 20px;
-      direction: rtl;
+    .dash-hero { text-align:center; padding:10px 0 6px; }
+    .dash-hero .logo { width:110px; height:auto; margin:0 auto 12px; display:block; }
+    .dash-hero h1 { margin:0 0 4px; font-size:22px; font-weight:800; color:var(--v2-text); }
+    .dash-hero .subtitle { font-size:13px; color:#7A6655; margin:0 0 22px; }
+    .dash-grid { display:grid; gap:12px; }
+    .dash-card {
+      display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:16px;
+      color:#fff; text-decoration:none; font-weight:800; font-size:15px; cursor:pointer;
+      box-shadow:0 4px 18px rgba(0,0,0,.12); transition:all .25s cubic-bezier(.4,0,.2,1);
+      border:none; text-align:start; width:100%; box-sizing:border-box;
     }
-    .dashboard {
-      background: #fff;
-      border-radius: 24px;
-      padding: 40px 36px;
-      max-width: 500px;
-      width: 100%;
-      box-shadow: 0 20px 60px rgba(0,0,0,.2);
-      text-align: center;
-      position: relative;
+    .dash-card:hover { transform:translateY(-2px); box-shadow:0 8px 26px rgba(0,0,0,.18); }
+    .dash-card .dash-card-icon {
+      width:44px; height:44px; border-radius:12px; background:rgba(255,255,255,.22);
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
     }
-    .dashboard .logo {
-      width: 1.93in;
-      height: 1.34in;
-      margin-bottom: 14px;
-    }
-    .dashboard h1 {
-      font-size: 24px;
-      font-weight: 800;
-      color: #111;
-      margin-bottom: 4px;
-    }
-    .dashboard .subtitle {
-      font-size: 14px;
-      color: #888;
-      margin-bottom: 28px;
-    }
-    .dashboard .btn-group {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .dashboard .btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding: 16px 20px;
-      border: none;
-      border-radius: 14px;
-      font-size: 16px;
-      font-weight: 700;
-      text-decoration: none;
-      cursor: pointer;
-      transition: all .2s;
-      color: #fff;
-    }
-    .btn-store {
-      background: #C9B99A;
-      box-shadow: 0 4px 14px rgba(201,185,154,.3);
-    }
-    .btn-store:hover { background: #B8A88A; transform: translateY(-2px); }
-    .btn-admin {
-      background: #1a73e8;
-      box-shadow: 0 4px 14px rgba(26,115,232,.3);
-    }
-    .btn-admin:hover { background: #1557b0; transform: translateY(-2px); }
-    .btn-invoices {
-      background: #f9a825;
-      box-shadow: 0 4px 14px rgba(249,168,37,.3);
-    }
-    .btn-invoices:hover { background: #e69500; transform: translateY(-2px); }
-    .btn .icon { font-size: 22px; }
-    .lang-toggle-btn {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      background: transparent;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 14px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      color: #555;
-      transition: all .2s;
-    }
-    .lang-toggle-btn:hover { color: var(--accent); }
-    @media (max-width:480px){
-      .dashboard { padding: 28px 20px; }
-      .dashboard h1 { font-size: 20px; }
-    }
+    .dash-card .dash-card-icon svg { width:24px; height:24px; }
+    .dash-card .dash-card-label { display:flex; flex-direction:column; gap:2px; }
+    .dash-card .dash-card-label small { font-weight:600; font-size:11px; opacity:.85; }
+    .dash-store { background:linear-gradient(135deg,#705f34,#8a7a44); }
+    .dash-cart { background:linear-gradient(135deg,#b08a52,#c99b63); }
+    .dash-invoices { background:linear-gradient(135deg,#325247,#3d6358); }
+    .dash-inventory { background:linear-gradient(135deg,#414935,#55603f); }
+    .dash-admin { background:linear-gradient(135deg,#1a73e8,#4285f4); }
+    .dash-admins { background:linear-gradient(135deg,#8B7355,#a88a68); }
+    .dash-stats { background:linear-gradient(135deg,#5f6368,#7b7f86); }
+    .dash-section-title { font-size:12px; font-weight:800; color:#7A6655; margin:20px 0 10px; letter-spacing:.4px; }
+    .view-container { max-width:560px; margin:0 auto; padding:18px; }
   </style>
 </head>
-<body>
-  <div class="dashboard">
-    <button id="dashLangToggle" class="lang-toggle-btn" type="button">🌐 EN</button>
-    <img src="images/logo.png" class="logo" alt="Logo" onerror="this.style.display='none'">
-    <p class="subtitle" id="dashSub"></p>
-    <div class="btn-group">
-      <a href="index.html" class="btn btn-store" id="dashStoreBtn"><span class="icon">🛒</span> <span id="dashStoreText"></span></a>
-      <a href="admin.html" class="btn btn-admin" id="dashAdminBtn"><span class="icon">⚙️</span> <span id="dashAdminText"></span></a>
-      <a href="invoices-view.html" class="btn btn-invoices" id="dashInvoicesBtn"><span class="icon">📄</span> <span id="dashInvoicesText"></span></a>
-      <a href="admins.html" class="btn" style="background:#8B7355;box-shadow:0 4px 14px rgba(139,115,85,.3);" id="dashAdminsBtn"><span class="icon">🔐</span> <span id="dashAdminsText">Admin Management</span></a>
-      <a href="statistics.html" class="btn" style="background:#6c757d;box-shadow:0 4px 14px rgba(108,117,125,.3);" id="dashStatsBtn"><span class="icon">📊</span> <span id="dashStatsText">Order Statistics</span></a>
+<body class="app-v2">
+
+  <!-- ========== APP HEADER (sticky) ========== -->
+  <header class="app-header">
+    <div class="app-header__inner">
+      <button class="icon-btn" id="menuBtn" type="button" aria-label="القائمة"><i data-lucide="menu"></i></button>
+      <a href="dashboard.html" class="app-logo-link"><img src="images/logo.png" class="app-logo" alt="سمسم"></a>
+      <div class="app-actions" style="margin-inline-start:auto;">
+        <button class="icon-btn icon-btn--label" id="dashLangToggle" type="button"><i data-lucide="globe"></i><span>EN</span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== DRAWER ========== -->
+  <aside class="app-drawer" id="appDrawer" aria-hidden="true">
+    <div class="app-drawer__header">
+      <img src="images/logo.png" alt="سمسم">
+      <button class="app-drawer__close" id="appDrawerClose" type="button" aria-label="إغلاق"><i data-lucide="x"></i></button>
+    </div>
+    <nav class="app-drawer__nav">
+      <a class="drawer-link" href="index.html" data-i18n-menu="menuStore"><i data-lucide="store"></i><span class="drawer-label">المتجر</span></a>
+
+      <div class="drawer-group open">
+        <button class="drawer-toggle" type="button" data-i18n-menu="menuCart"><i data-lucide="shopping-cart"></i><span class="drawer-label">السلة</span><span class="drawer-arrow"><i data-lucide="chevron-right"></i></span></button>
+        <div class="drawer-submenu">
+          <a href="cart.html" data-i18n-menu="menuCartPurchase"><i data-lucide="shopping-bag"></i><span class="drawer-label">سلة المشتريات</span></a>
+          <a href="inventory-cart.html" data-i18n-menu="menuCartInventory"><i data-lucide="package"></i><span class="drawer-label">سلة الجرد</span></a>
+        </div>
+      </div>
+
+      <div class="drawer-group open">
+        <button class="drawer-toggle" type="button" data-i18n-menu="menuInvoices"><i data-lucide="file-text"></i><span class="drawer-label">الفواتير</span><span class="drawer-arrow"><i data-lucide="chevron-right"></i></span></button>
+        <div class="drawer-submenu">
+          <a href="invoices-view.html" data-i18n-menu="menuInvoicesBranch"><i data-lucide="building-2"></i><span class="drawer-label">فواتير الفروع</span></a>
+          <a href="inventory-view.html" data-i18n-menu="menuInvoicesInventory"><i data-lucide="boxes"></i><span class="drawer-label">فواتير الجرد</span></a>
+        </div>
+      </div>
+
+      <div class="drawer-group">
+        <button class="drawer-toggle" type="button" data-i18n-menu="menuAdmin"><i data-lucide="settings"></i><span class="drawer-label">الإدارة</span><span class="drawer-arrow"><i data-lucide="chevron-right"></i></span></button>
+        <div class="drawer-submenu">
+          <a href="admin.html" data-i18n-menu="menuAdminGeneral"><i data-lucide="sliders-horizontal"></i><span class="drawer-label">إدارة عامة</span></a>
+          <a href="admins.html" data-i18n-menu="menuAdminManagers"><i data-lucide="shield-check"></i><span class="drawer-label">إدارة المدراء</span></a>
+          <a href="statistics.html" data-i18n-menu="menuAdminStats"><i data-lucide="bar-chart-3"></i><span class="drawer-label">إحصائيات الطلبات</span></a>
+        </div>
+      </div>
+    </nav>
+  </aside>
+  <div class="app-drawer__backdrop" id="appDrawerBackdrop"></div>
+
+  <div class="view-container">
+    <div class="dash-hero">
+      <img src="images/logo.png" class="logo" alt="Logo" onerror="this.style.display='none'">
+      <h1 id="dashTitle">لوحة التحكم</h1>
+      <p class="subtitle" id="dashSub">اختر القسم</p>
+    </div>
+
+    <div class="dash-section-title" id="dashSecStore">المتجر</div>
+    <div class="dash-grid">
+      <a href="index.html" class="dash-card dash-store" id="dashStoreBtn">
+        <span class="dash-card-icon"><i data-lucide="store"></i></span>
+        <span class="dash-card-label"><span id="dashStoreText">المتجر</span><small id="dashStoreSub">تصفح الأقسام والمنتجات</small></span>
+      </a>
+      <a href="cart.html" class="dash-card dash-cart" id="dashCartBtn">
+        <span class="dash-card-icon"><i data-lucide="shopping-bag"></i></span>
+        <span class="dash-card-label"><span id="dashCartText">سلة المشتريات</span><small id="dashCartSub">إنشاء فاتورة مشتريات</small></span>
+      </a>
+      <a href="inventory-cart.html" class="dash-card dash-inventory" id="dashInvCartBtn">
+        <span class="dash-card-icon"><i data-lucide="package"></i></span>
+        <span class="dash-card-label"><span id="dashInvCartText">سلة الجرد</span><small id="dashInvCartSub">إنشاء فاتورة جرد مخزون</small></span>
+      </a>
+    </div>
+
+    <div class="dash-section-title" id="dashSecInvoices">الفواتير</div>
+    <div class="dash-grid">
+      <a href="invoices-view.html" class="dash-card dash-invoices" id="dashInvoicesBtn">
+        <span class="dash-card-icon"><i data-lucide="building-2"></i></span>
+        <span class="dash-card-label"><span id="dashInvoicesText">فواتير الفروع</span><small id="dashInvoicesSub">عرض فواتير الفروع</small></span>
+      </a>
+      <a href="inventory-view.html" class="dash-card dash-inventory" id="dashInvViewBtn">
+        <span class="dash-card-icon"><i data-lucide="boxes"></i></span>
+        <span class="dash-card-label"><span id="dashInvViewText">فواتير الجرد</span><small id="dashInvViewSub">عرض فواتير الجرد</small></span>
+      </a>
+    </div>
+
+    <div class="dash-section-title" id="dashSecAdmin">الإدارة</div>
+    <div class="dash-grid">
+      <a href="admin.html" class="dash-card dash-admin" id="dashAdminBtn">
+        <span class="dash-card-icon"><i data-lucide="sliders-horizontal"></i></span>
+        <span class="dash-card-label"><span id="dashAdminText">إدارة عامة</span><small id="dashAdminSub">إدارة الأقسام والمنتجات</small></span>
+      </a>
+      <a href="admins.html" class="dash-card dash-admins" id="dashAdminsBtn">
+        <span class="dash-card-icon"><i data-lucide="shield-check"></i></span>
+        <span class="dash-card-label"><span id="dashAdminsText">إدارة المدراء</span><small id="dashAdminsSub">إدارة حسابات المدراء</small></span>
+      </a>
+      <a href="statistics.html" class="dash-card dash-stats" id="dashStatsBtn">
+        <span class="dash-card-icon"><i data-lucide="bar-chart-3"></i></span>
+        <span class="dash-card-label"><span id="dashStatsText">إحصائيات الطلبات</span><small id="dashStatsSub">تحليل الطلبات والفواتير</small></span>
+      </a>
     </div>
   </div>
-  <script>
+
+  <script type="module">
+    import { setLabel, getLang, t } from "./js/i18n.js";
     const LANG_KEY = "sallah_lang";
-    function getLang(){ return localStorage.getItem(LANG_KEY) || "en"; }
     function setLang(l){ localStorage.setItem(LANG_KEY, l); }
-    const T_DASH = {
-      ar: { title:"لوحة التحكم", sub:"اختر القسم", store:" المتجر", admin:" لوحة الإدارة", invoices:" عرض الفواتير", stats:" إحصائيات الطلبات", toggle:"🌐 EN" },
-      en: { title:"Dashboard", sub:"Choose a section", store:" Store", admin:" Admin Panel", invoices:" Invoices View", stats:" Order Statistics", toggle:"🌐 عربي" }
+    const DASH_T = {
+      ar: {
+        title:"لوحة التحكم", sub:"اختر القسم",
+        secStore:"المتجر", secInvoices:"الفواتير", secAdmin:"الإدارة",
+        store:"المتجر", storeSub:"تصفح الأقسام والمنتجات",
+        cart:"سلة المشتريات", cartSub:"إنشاء فاتورة مشتريات",
+        invCart:"سلة الجرد", invCartSub:"إنشاء فاتورة جرد مخزون",
+        invoices:"فواتير الفروع", invoicesSub:"عرض فواتير الفروع",
+        invView:"فواتير الجرد", invViewSub:"عرض فواتير الجرد",
+        admin:"إدارة عامة", adminSub:"إدارة الأقسام والمنتجات",
+        admins:"إدارة المدراء", adminsSub:"إدارة حسابات المدراء",
+        stats:"إحصائيات الطلبات", statsSub:"تحليل الطلبات والفواتير",
+      },
+      en: {
+        title:"Dashboard", sub:"Choose a section",
+        secStore:"Store", secInvoices:"Invoices", secAdmin:"Admin",
+        store:"Store", storeSub:"Browse categories and products",
+        cart:"Purchase Cart", cartSub:"Create a purchase invoice",
+        invCart:"Inventory Cart", invCartSub:"Create an inventory count invoice",
+        invoices:"Branch Invoices", invoicesSub:"View branch invoices",
+        invView:"Inventory Invoices", invViewSub:"View inventory invoices",
+        admin:"General Admin", adminSub:"Manage categories and products",
+        admins:"Admin Management", adminsSub:"Manage admin accounts",
+        stats:"Order Statistics", statsSub:"Analyze orders and invoices",
+      }
     };
+    function dt(key){
+      const lang = getLang();
+      return (DASH_T[lang] || DASH_T.ar)[key] || key;
+    }
     function applyDashLang(){
       const lang = getLang();
-      const tr = T_DASH[lang] || T_DASH.ar;
       document.documentElement.lang = lang;
       document.documentElement.dir = lang === "en" ? "ltr" : "rtl";
-      document.getElementById("dashSub").textContent = tr.sub;
-      document.getElementById("dashStoreText").textContent = tr.store;
-      document.getElementById("dashAdminText").textContent = tr.admin;
-      document.getElementById("dashInvoicesText").textContent = tr.invoices;
-      document.getElementById("dashStatsText").textContent = tr.stats;
-      document.getElementById("dashLangToggle").textContent = tr.toggle;
+      const tt = document.getElementById("dashLangToggle");
+      if(tt) setLabel(tt, lang === "en" ? "عربي" : "EN");
+      const idMap = [
+        ["dashTitle","title"],["dashSub","sub"],
+        ["dashSecStore","secStore"],["dashSecInvoices","secInvoices"],["dashSecAdmin","secAdmin"],
+        ["dashStoreText","store"],["dashStoreSub","storeSub"],
+        ["dashCartText","cart"],["dashCartSub","cartSub"],
+        ["dashInvCartText","invCart"],["dashInvCartSub","invCartSub"],
+        ["dashInvoicesText","invoices"],["dashInvoicesSub","invoicesSub"],
+        ["dashInvViewText","invView"],["dashInvViewSub","invViewSub"],
+        ["dashAdminText","admin"],["dashAdminSub","adminSub"],
+        ["dashAdminsText","admins"],["dashAdminsSub","adminsSub"],
+        ["dashStatsText","stats"],["dashStatsSub","statsSub"],
+      ];
+      idMap.forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        if(el) el.textContent = dt(key);
+      });
     }
     applyDashLang();
-    document.getElementById("dashLangToggle").addEventListener("click", function(){
+    document.getElementById("dashLangToggle")?.addEventListener("click", function(){
       setLang(getLang() === "ar" ? "en" : "ar");
       applyDashLang();
     });
   </script>
+
+  <script type="module" src="js/chrome.js?v=20260802"></script>
 </body>
 </html>

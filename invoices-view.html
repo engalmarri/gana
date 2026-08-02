@@ -5,16 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>عرض الفواتير</title>
   <link rel="icon" type="image/png" href="images/icon.png">
-  <link rel="stylesheet" href="css/style.css?v=20260705-2">
+  <link rel="stylesheet" href="css/style.css?v=20260714-2">
+  <link rel="stylesheet" href="css/app.css?v=20260802">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    html, body { margin:0; padding:0; background:#F6F1EB; font-family:'Cairo','Poppins',Arial,sans-serif; color:#2B2424; }
-    .view-header { background:linear-gradient(135deg,#705f34 0%,#325247 50%,#414935 100%); color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; position:sticky; top:0; z-index:100; box-shadow:0 2px 10px rgba(0,0,0,.15); }
-    .view-header .logo { height:38px; width:auto; }
-    .view-header h1 { margin:0; font-size:20px; font-weight:800; }
-    .view-header span { font-size:13px; opacity:.9; }
     .view-container { max-width:1100px; margin:0 auto; padding:18px; }
     .view-search { width:100%; padding:12px 16px; border:1.5px solid rgba(122,102,85,.2); border-radius:999px; font-size:14px; margin-bottom:18px; box-sizing:border-box; background:#fff; outline:none; transition:all .3s; text-align:center; }
     .view-search:focus { border-color:#B08A52; box-shadow:0 0 0 3px rgba(176,138,82,.15); }
@@ -27,9 +24,9 @@
     .view-card .v-customer { font-weight:800; margin-bottom:4px; font-size:14px; color:#2B2424; }
     .view-card .v-items-preview { color:#7A6655; font-size:12px; margin-bottom:6px; }
     .view-card .v-footer { display:flex; gap:16px; font-size:12px; color:#7A6655; margin-bottom:10px; }
-    .view-card .v-toggle-btn { background:#453630; color:#fff; border:none; border-radius:10px; padding:7px 16px; cursor:pointer; font-size:12px; font-weight:700; transition:all .3s; }
+    .view-card .v-toggle-btn { background:#453630; color:#fff; border:none; border-radius:10px; padding:7px 16px; cursor:pointer; font-size:12px; font-weight:700; transition:all .3s; display:inline-flex; align-items:center; gap:6px; }
     .view-card .v-toggle-btn:hover { background:#B08A52; }
-    .view-card .v-print-btn { background:#B08A52; color:#fff; border:none; border-radius:10px; padding:7px 16px; cursor:pointer; font-size:12px; font-weight:700; transition:all .3s; margin-left:6px; }
+    .view-card .v-print-btn { background:#B08A52; color:#fff; border:none; border-radius:10px; padding:7px 16px; cursor:pointer; font-size:12px; font-weight:700; transition:all .3s; margin-left:6px; display:inline-flex; align-items:center; gap:6px; }
     .view-card .v-print-btn:hover { background:#453630; }
     .view-card .v-detail-table { width:100%; border-collapse:collapse; margin-top:10px; display:none; border-radius:10px; overflow:hidden; }
     .view-card .v-detail-table.show { display:table; }
@@ -42,16 +39,14 @@
     .lang-toggle-btn { background:transparent; border:none; border-radius:6px; padding:5px 12px; font-size:12px; font-weight:700; cursor:pointer; color:#fff; transition:all .3s; }
     .lang-toggle-btn:hover { opacity:.8; }
     .view-header-left { display:flex; align-items:center; gap:8px; }
-    .view-user-info { font-size:12px; opacity:.9; }
-    .view-logout-btn { background:rgba(255,255,255,.15); border:1.5px solid rgba(255,255,255,.3); border-radius:10px; padding:5px 12px; font-size:12px; font-weight:700; cursor:pointer; color:#fff; transition:all .3s; }
-    .view-logout-btn:hover { background:rgba(255,255,255,.25); }
+    .view-user-info { font-size:12px; font-weight:700; color:var(--v2-text); display:inline-flex; align-items:center; gap:4px; }
     .view-toolbar{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
     .branch-filter-bar{display:flex;flex-wrap:wrap;gap:6px;}
     .branch-filter-bar .branch-chip{padding:7px 14px;border-radius:999px;border:1.5px solid rgba(122,102,85,.2);background:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;color:#7A6655;white-space:nowrap;}
     .branch-filter-bar .branch-chip:hover{border-color:#B08A52;color:#453630;background:#F6F1EB;}
     .branch-filter-bar .branch-chip.active{background:#453630;color:#fff;border-color:#453630;box-shadow:0 2px 8px rgba(69,54,48,.2);}
     .sort-btns-bar{display:flex;gap:6px;flex-wrap:wrap;}
-    .sort-btns-bar .sort-btn{padding:6px 12px;border-radius:8px;border:1.5px solid rgba(122,102,85,.2);background:#fff;font-size:13px;cursor:pointer;transition:all .2s;color:#7A6655;font-weight:700;}
+    .sort-btns-bar .sort-btn{padding:6px 12px;border-radius:8px;border:1.5px solid rgba(122,102,85,.2);background:#fff;font-size:13px;cursor:pointer;transition:all .2s;color:#7A6655;font-weight:700;display:inline-flex;align-items:center;gap:6px;}
     .sort-btns-bar .sort-btn:hover{border-color:#B08A52;color:#453630;}
     .sort-btns-bar .sort-btn.active{background:#B08A52;color:#fff;border-color:#B08A52;}
     @media(max-width:768px){
@@ -62,48 +57,94 @@
     }
   </style>
 </head>
-<body>
+<body class="app-v2">
+
+  <!-- ========== APP HEADER (sticky) ========== -->
+  <header class="app-header">
+    <div class="app-header__inner">
+      <button class="icon-btn" id="menuBtn" type="button" aria-label="القائمة"><i data-lucide="menu"></i></button>
+      <a href="dashboard.html" class="app-logo-link"><img src="images/logo.png" class="app-logo" alt="سمسم"></a>
+      <div class="app-actions" style="margin-inline-start:auto;">
+        <button class="icon-btn icon-btn--label" id="viewLangToggle" type="button"><i data-lucide="globe"></i><span>EN</span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== DRAWER ========== -->
+  <aside class="app-drawer" id="appDrawer" aria-hidden="true">
+    <div class="app-drawer__header">
+      <img src="images/logo.png" alt="سمسم">
+      <button class="app-drawer__close" id="appDrawerClose" type="button" aria-label="إغلاق"><i data-lucide="x"></i></button>
+    </div>
+    <nav class="app-drawer__nav">
+      <a class="drawer-link" href="index.html" data-i18n-menu="menuStore"><i data-lucide="store"></i><span class="drawer-label">المتجر</span></a>
+
+      <div class="drawer-group open">
+        <button class="drawer-toggle" type="button" data-i18n-menu="menuCart"><i data-lucide="shopping-cart"></i><span class="drawer-label">السلة</span><span class="drawer-arrow"><i data-lucide="chevron-right"></i></span></button>
+        <div class="drawer-submenu">
+          <a href="cart.html" data-i18n-menu="menuCartPurchase"><i data-lucide="shopping-bag"></i><span class="drawer-label">سلة المشتريات</span></a>
+          <a href="inventory-cart.html" data-i18n-menu="menuCartInventory"><i data-lucide="package"></i><span class="drawer-label">سلة الجرد</span></a>
+        </div>
+      </div>
+
+      <div class="drawer-group open">
+        <button class="drawer-toggle" type="button" data-i18n-menu="menuInvoices"><i data-lucide="file-text"></i><span class="drawer-label">الفواتير</span><span class="drawer-arrow"><i data-lucide="chevron-right"></i></span></button>
+        <div class="drawer-submenu">
+          <a class="is-active" href="invoices-view.html" data-i18n-menu="menuInvoicesBranch"><i data-lucide="building-2"></i><span class="drawer-label">فواتير الفروع</span></a>
+          <a href="inventory-view.html" data-i18n-menu="menuInvoicesInventory"><i data-lucide="boxes"></i><span class="drawer-label">فواتير الجرد</span></a>
+        </div>
+      </div>
+
+      <div class="drawer-group">
+        <button class="drawer-toggle" type="button" data-i18n-menu="menuAdmin"><i data-lucide="settings"></i><span class="drawer-label">الإدارة</span><span class="drawer-arrow"><i data-lucide="chevron-right"></i></span></button>
+        <div class="drawer-submenu">
+          <a href="admin.html" data-i18n-menu="menuAdminGeneral"><i data-lucide="sliders-horizontal"></i><span class="drawer-label">إدارة عامة</span></a>
+          <a href="admins.html" data-i18n-menu="menuAdminManagers"><i data-lucide="shield-check"></i><span class="drawer-label">إدارة المدراء</span></a>
+          <a href="statistics.html" data-i18n-menu="menuAdminStats"><i data-lucide="bar-chart-3"></i><span class="drawer-label">إحصائيات الطلبات</span></a>
+        </div>
+      </div>
+    </nav>
+  </aside>
+  <div class="app-drawer__backdrop" id="appDrawerBackdrop"></div>
 
   <!-- LOGIN REQUIRED OVERLAY -->
   <div id="loginOverlay" style="position:fixed;inset:0;background:linear-gradient(135deg,#705f34 0%,#325247 50%,#414935 100%);z-index:9999;display:flex;align-items:center;justify-content:center;">
     <div style="background:#fff;border-radius:24px;padding:36px;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative;">
-      <button id="loginLangToggle" class="lang-toggle-btn" type="button" style="position:absolute;top:12px;left:12px;background:transparent;border:none;box-shadow:none;color:#222;">🌐 EN</button>
+      <button id="loginLangToggle" class="icon-btn icon-btn--label" type="button" style="position:absolute;top:12px;left:12px;width:auto;margin:0;padding:8px 10px;background:transparent;border:none;box-shadow:none;color:#222;"><i data-lucide="globe"></i><span>EN</span></button>
       <img src="images/logo.png" alt="Logo" style="width:100px;height:auto;margin:0 auto 12px;" onerror="this.style.display='none'">
       <h2 id="loginTitle" style="color:#111;font-size:22px;margin-bottom:4px;">عرض الفواتير</h2>
       <p id="loginSub" style="color:#888;font-size:14px;margin-bottom:20px;">سجّل دخولك لعرض الفواتير</p>
       <select id="loginAccountType" style="width:100%;padding:12px;border:1.5px solid rgba(122,102,85,.2);border-radius:10px;font-size:14px;margin-bottom:10px;background:#f9f8f6;">
         <option value="">-- نوع الحساب --</option>
-        <option value="جرد مخزون">جرد مخزون 🔬</option>
-        <option value="حساب فرع">حساب فرع 🏪</option>
+        <option value="جرد مخزون">جرد مخزون</option>
+        <option value="حساب فرع">حساب فرع</option>
       </select>
       <select id="loginName" style="width:100%;padding:12px;border:1.5px solid rgba(122,102,85,.2);border-radius:10px;font-size:14px;margin-bottom:10px;background:#f9f8f6;display:none;">
         <option value="">-- اختر الاسم --</option>
       </select>
       <input type="password" id="loginPin" placeholder="كلمة المرور" autocomplete="off" style="width:100%;padding:12px;border:1.5px solid rgba(122,102,85,.2);border-radius:10px;font-size:14px;margin-bottom:10px;display:none;">
-      <button id="loginSubmit" type="button" style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#325247,#414935);color:#fff;font-size:16px;font-weight:800;cursor:pointer;display:none;">دخول</button>
+      <button id="loginSubmit" type="button" style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#325247,#414935);color:#fff;font-size:16px;font-weight:800;cursor:pointer;display:none;"><i data-lucide="log-in"></i><span>دخول</span></button>
       <div id="loginError" style="color:#dc3545;font-size:13px;margin-top:8px;min-height:18px;"></div>
     </div>
   </div>
 
   <!-- MAIN CONTENT (hidden until login) -->
   <div id="mainContent" style="display:none;">
-    <div class="view-header">
-      <img src="images/logo.png" class="logo" alt="Logo">
-      <h1 id="viewTitle">📄 عرض الفواتير</h1>
-      <div class="view-header-left">
-        <span id="viewUserInfo" class="view-user-info"></span>
-        <button id="viewLogoutBtn" class="view-logout-btn" type="button">🚪 تسجيل الخروج</button>
-        <button id="viewLangToggle" class="lang-toggle-btn" type="button" style="color:#fff;">🌐 EN</button>
-      </div>
-    </div>
     <div class="view-container">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <h1 id="viewTitle" style="margin:0;font-size:20px;font-weight:800;color:var(--v2-text);">عرض الفواتير</h1>
+        <div class="view-header-left">
+          <span id="viewUserInfo" class="view-user-info"></span>
+          <button id="viewLogoutBtn" class="btn-danger" type="button" style="padding:6px 12px;"><i data-lucide="log-out"></i><span>تسجيل الخروج</span></button>
+        </div>
+      </div>
       <div class="view-toolbar">
         <div id="branchFilter" class="branch-filter-bar"></div>
         <div id="sortBtns" class="sort-btns-bar">
-          <button class="sort-btn active" data-sort="newest">🆕</button>
-          <button class="sort-btn" data-sort="oldest">🕰️</button>
-          <button class="sort-btn" data-sort="most">📈</button>
-          <button class="sort-btn" data-sort="least">📉</button>
+          <button class="sort-btn active" data-sort="newest"><i data-lucide="clock"></i><span>🆕</span></button>
+          <button class="sort-btn" data-sort="oldest"><i data-lucide="history"></i></button>
+          <button class="sort-btn" data-sort="most"><i data-lucide="trending-up"></i></button>
+          <button class="sort-btn" data-sort="least"><i data-lucide="trending-down"></i></button>
         </div>
       </div>
       <input type="text" id="viewSearch" class="view-search" placeholder="🔍 البحث بالعميل أو رقم الفاتورة...">
@@ -145,38 +186,45 @@
         loginTitle:"عرض الفواتير", loginSub:"سجّل دخولك لعرض الفواتير",
         accountType:"-- نوع الحساب --", accountTypeLab:"جرد مخزون", accountTypeBranch:"حساب فرع",
         selectName:"-- اختر الاسم --", pinPlaceholder:"كلمة المرور",
-        submit:"دخول", title:"📄 عرض الفواتير",
+        submit:"دخول", title:"عرض الفواتير",
         search:"🔍 البحث بالعميل أو رقم الفاتورة...", loading:"جاري تحميل الفواتير...",
-        empty:"لا توجد فواتير", show:"عرض التفاصيل", hide:"إخفاء", print:"🖨 طباعة",
+        empty:"لا توجد فواتير", show:"عرض التفاصيل", hide:"إخفاء", print:"طباعة",
         items:"المنتجات", qty:"الكمية", product:"المنتج", sku:"KOD", noItems:"لا توجد منتجات",
-        customer:"العميل", logout:"🚪 تسجيل الخروج", logoutConfirm:"هل تريد تسجيل الخروج؟",
-        toggle:"🌐 EN", selectAccountType:"اختر نوع الحساب", selectNameErr:"اختر الاسم",
+        customer:"العميل", logout:"تسجيل الخروج", logoutConfirm:"هل تريد تسجيل الخروج؟",
+        toggle:"EN", selectAccountType:"اختر نوع الحساب", selectNameErr:"اختر الاسم",
         pinFourDigits:"الرجاء إدخال كلمة المرور", enterPin:"الرجاء إدخال كلمة المرور", accountNotFound:"الحساب غير موجود", wrongPassword:"كلمة المرور خاطئة",
-        menuStore:"المتجر", menuCart:"السلة", menuAdmin:"لوحة الإدارة", menuInvoices:"عرض الفواتير", 
+        menuStore:"المتجر", menuCart:"السلة", menuAdmin:"لوحة الإدارة", menuInvoices:"عرض الفواتير",
         all:"جميع الفروع",
       },
       en: {
         loginTitle:"Invoices View", loginSub:"Login to view invoices",
         accountType:"-- Account Type --", accountTypeLab:"Inventory Account", accountTypeBranch:"Branch Account",
         selectName:"-- Select Name --", pinPlaceholder:"Password",
-        submit:"Login", title:"📄 Invoices View",
+        submit:"Login", title:"Invoices View",
         search:"🔍 Search by customer or invoice number...", loading:"Loading invoices...",
-        empty:"No invoices found", show:"Show Details", hide:"Hide", print:"🖨 Print",
+        empty:"No invoices found", show:"Show Details", hide:"Hide", print:"Print",
         items:"Items", qty:"Qty", product:"Product", sku:"SKU", noItems:"No items",
-        customer:"Customer", logout:"🚪 Logout", logoutConfirm:"Are you sure you want to logout?",
-        toggle:"🌐 عربي", selectAccountType:"Select account type", selectNameErr:"Select a name",
+        customer:"Customer", logout:"Logout", logoutConfirm:"Are you sure you want to logout?",
+        toggle:"عربي", selectAccountType:"Select account type", selectNameErr:"Select a name",
         pinFourDigits:"Please enter password", enterPin:"Please enter password", accountNotFound:"Account not found", wrongPassword:"Wrong PIN",
-        menuStore:"Store", menuCart:"Cart", menuAdmin:"Admin Panel", menuInvoices:"Invoices", 
+        menuStore:"Store", menuCart:"Cart", menuAdmin:"Admin Panel", menuInvoices:"Invoices",
         all:"All Branches",
       }
     };
     function tt(key){ return (TV[getLang()] || TV.ar)[key] || key; }
+    function setBtnLabel(btn, text){
+      if(!btn) return;
+      const s = btn.querySelector("span");
+      if(s){ s.textContent = text; return; }
+      btn.textContent = text;
+    }
 
     function applyLoginLang(){
       const lang = getLang();
       document.documentElement.lang = lang;
       document.documentElement.dir = lang === "en" ? "ltr" : "rtl";
-      document.getElementById("loginLangToggle").textContent = tt("toggle");
+      const lt = document.getElementById("loginLangToggle");
+      if(lt) setBtnLabel(lt, lang === "en" ? "عربي" : "EN");
       document.getElementById("loginTitle").textContent = tt("loginTitle");
       document.getElementById("loginSub").textContent = tt("loginSub");
       const sel = document.getElementById("loginAccountType");
@@ -188,17 +236,8 @@
       const nameSel = document.getElementById("loginName");
       if(nameSel){ const def = nameSel.querySelector('option[value=""]'); if(def) def.textContent = tt("selectName"); }
       document.getElementById("loginPin").placeholder = tt("pinPlaceholder");
-      document.getElementById("loginSubmit").textContent = tt("submit");
-      // Floating menu
-      const menuT={ar:{menuStore:"المتجر",menuCart:"السلة",menuInvoices:"الفواتير",menuAdmin:"الإدارة",menuCartPurchase:"سلة المشتريات",menuCartInventory:"سلة الجرد",menuInvoicesBranch:"فواتير الفروع",menuInvoicesInventory:"فواتير الجرد",menuAdminGeneral:"إدارة عامة",menuAdminManagers:"إدارة المدراء",menuAdminStats:"إحصائيات الطلبات"},en:{menuStore:"Store",menuCart:"Cart",menuInvoices:"Invoices",menuAdmin:"Admin",menuCartPurchase:"Purchase Cart",menuCartInventory:"Inventory Cart",menuInvoicesBranch:"Branch Invoices",menuInvoicesInventory:"Inventory Invoices",menuAdminGeneral:"General Admin",menuAdminManagers:"Admin Management",menuAdminStats:"Order Statistics"}};
-      const mtr=menuT[lang]||menuT.ar;
-      document.querySelectorAll("#dashMenuDropdown a, #dashMenuDropdown .dash-toggle").forEach(el=>{
-        const key=el.getAttribute("data-i18n-menu");
-        if(!key||!mtr[key])return;
-        const icon=el.querySelector(".dash-icon");const iconHtml=icon?icon.outerHTML:"";
-        const arrow=el.querySelector(".dash-arrow");const arrowHtml=arrow?arrow.outerHTML:"";
-        el.innerHTML=iconHtml+" "+mtr[key]+" "+arrowHtml;
-      });
+      const sub = document.getElementById("loginSubmit");
+      if(sub) setBtnLabel(sub, tt("submit"));
     }
 
     function applyViewLang(){
@@ -207,25 +246,13 @@
       document.documentElement.dir = lang === "en" ? "ltr" : "rtl";
       document.getElementById("viewTitle").textContent = tt("title");
       document.getElementById("viewSearch").placeholder = tt("search");
-      document.getElementById("viewLangToggle").textContent = tt("toggle");
-      document.getElementById("viewLogoutBtn").textContent = tt("logout");
-      if(currentUser) document.getElementById("viewUserInfo").textContent = `👤 ${currentUser.name}`;
+      const vt = document.getElementById("viewLangToggle");
+      if(vt) setBtnLabel(vt, lang === "en" ? "عربي" : "EN");
+      const lo = document.getElementById("viewLogoutBtn");
+      if(lo) setBtnLabel(lo, tt("logout"));
+      if(currentUser) document.getElementById("viewUserInfo").innerHTML = `<i data-lucide="user"></i> ${escapeHTML(currentUser.name)}`;
       if(filteredBase.length) renderBranchFilters();
-      applyMenuLangInline();
       applyFiltersAndRender();
-    }
-
-    function applyMenuLangInline(){
-      const lang = getLang();
-      const menuT={ar:{menuStore:"المتجر",menuCart:"السلة",menuInvoices:"الفواتير",menuAdmin:"الإدارة",menuCartPurchase:"سلة المشتريات",menuCartInventory:"سلة الجرد",menuInvoicesBranch:"فواتير الفروع",menuInvoicesInventory:"فواتير الجرد",menuAdminGeneral:"إدارة عامة",menuAdminManagers:"إدارة المدراء",menuAdminStats:"إحصائيات الطلبات"},en:{menuStore:"Store",menuCart:"Cart",menuInvoices:"Invoices",menuAdmin:"Admin",menuCartPurchase:"Purchase Cart",menuCartInventory:"Inventory Cart",menuInvoicesBranch:"Branch Invoices",menuInvoicesInventory:"Inventory Invoices",menuAdminGeneral:"General Admin",menuAdminManagers:"Admin Management",menuAdminStats:"Order Statistics"}};
-      const mtr=menuT[lang]||menuT.ar;
-      document.querySelectorAll("#dashMenuDropdown a, #dashMenuDropdown .dash-toggle").forEach(el=>{
-        const key=el.getAttribute("data-i18n-menu");
-        if(!key||!mtr[key])return;
-        const icon=el.querySelector(".dash-icon");const iconHtml=icon?icon.outerHTML:"";
-        const arrow=el.querySelector(".dash-arrow");const arrowHtml=arrow?arrow.outerHTML:"";
-        el.innerHTML=iconHtml+" "+mtr[key]+" "+arrowHtml;
-      });
     }
 
     /* LOGIN */
@@ -348,7 +375,6 @@
         let itemsTableRows = "";
         if(inv.items && inv.items.length > 0){
           let viewItems = [...inv.items];
-          // Group by category
           const viewGroups = {};
           viewItems.forEach(it => {
             const cat = it.category || "Other";
@@ -356,7 +382,6 @@
             viewGroups[cat].push(it);
           });
           let viewIdx = 0;
-          // Use actual categories found in the invoice, ordered by CAT_ORDER_VIEW then alphabetically
           const foundCats = Object.keys(viewGroups);
           const sortedCats = [...CAT_ORDER_VIEW.filter(c => foundCats.includes(c)), ...foundCats.filter(c => !CAT_ORDER_VIEW.includes(c))];
           sortedCats.forEach(cat => {
@@ -377,13 +402,13 @@
           <div class="v-customer">${escapeHTML(inv.customerName || "")}</div>
           <div class="v-items-preview">${escapeHTML(itemsPreview)}</div>
           <div class="v-footer"><span>${tt("items")}: ${inv.totalItems || 0}</span><span>${tt("qty")}: ${inv.totalQty || 0}</span></div>
-          <div class="v-btns"><button class="v-toggle-btn" type="button">${tt("show")}</button><button class="v-print-btn" type="button">${tt("print")}</button></div>
+          <div class="v-btns"><button class="v-toggle-btn" type="button"><i data-lucide="chevron-down"></i><span>${tt("show")}</span></button><button class="v-print-btn" type="button"><i data-lucide="printer"></i><span>${tt("print")}</span></button></div>
           <table class="v-detail-table"><thead><tr><th>#</th><th>${tt("product")}</th><th>${tt("sku")}</th><th>${tt("qty")}</th></tr></thead>
           <tbody>${itemsTableRows || `<tr><td colspan="4" style="padding:8px;text-align:center;color:#888;">${tt("noItems")}</td></tr>`}</tbody></table>`;
         card.querySelector(".v-toggle-btn").addEventListener("click", function(){
           const tbl = card.querySelector(".v-detail-table");
           tbl.classList.toggle("show");
-          this.textContent = tbl.classList.contains("show") ? tt("hide") : tt("show");
+          setBtnLabel(this, tbl.classList.contains("show") ? tt("hide") : tt("show"));
         });
         card.querySelector(".v-print-btn").addEventListener("click", () => downloadInvoicePdf(inv));
         container.appendChild(card);
@@ -403,14 +428,12 @@
         try{ const q = query(invoicesRef, orderBy("createdAt", "desc")); snapshot = await getDocs(q); }catch(e){ snapshot = await getDocs(invoicesRef); }
         allInvoices = [];
         snapshot.forEach(d => allInvoices.push({ id: d.id, ...d.data() }));
-        // Infer accountType for invoices missing it by looking up customer
         try{
           const custSnap = await getDocs(collection(db, "customers"));
           const typeMap = {};
           custSnap.forEach(d => { const dt = d.data(); if(dt.name && dt.accountType) typeMap[dt.name] = dt.accountType; });
           allInvoices.forEach(inv => { if(!inv.accountType && inv.customerName && typeMap[inv.customerName]) inv.accountType = typeMap[inv.customerName]; });
         }catch(e){}
-        // Filter by account type
         const accType = currentUser?.accountType || "";
         filteredBase = filterInvoicesByType(allInvoices, accType);
         renderBranchFilters();
@@ -451,11 +474,9 @@
     function applyFiltersAndRender(){
       const searchVal = document.getElementById("viewSearch")?.value.toLowerCase().trim() || "";
       let list = [...filteredBase];
-      // Branch filter
       if(selectedBranch){
         list = list.filter(inv => (inv.branchName || "") === selectedBranch);
       }
-      // Search filter
       if(searchVal){
         list = list.filter(inv =>
           (inv.customerName || "").toLowerCase().includes(searchVal) ||
@@ -463,7 +484,6 @@
           (inv.branchName || "").toLowerCase().includes(searchVal)
         );
       }
-      // Sort
       if(sortMode === "newest"){
         list.sort((a,b) => (b.createdAt||b.date||"") > (a.createdAt||a.date||"") ? 1 : -1);
       } else if(sortMode === "oldest"){
@@ -521,59 +541,6 @@
   </div>
 </div>
 
-<!-- FLOATING MENU -->
-<button class="dash-menu-btn" id="dashMenuBtn" aria-label="القائمة"><span></span><span></span><span></span></button>
-<div class="dash-menu-dropdown" id="dashMenuDropdown">
-  <a href="index.html" data-i18n-menu="menuStore"><span class="dash-icon">🛒</span> المتجر</a>
-  <div class="dash-group">
-    <div class="dash-toggle" data-i18n-menu="menuCart"><span class="dash-icon">📋</span> السلة <span class="dash-arrow">▶</span></div>
-    <div class="dash-submenu">
-      <a href="cart.html" data-i18n-menu="menuCartPurchase"><span class="dash-icon">🛍️</span> سلة المشتريات</a>
-      <a href="inventory-cart.html" data-i18n-menu="menuCartInventory"><span class="dash-icon">📦</span> سلة الجرد</a>
-    </div>
-  </div>
-  <div class="dash-group">
-    <div class="dash-toggle" data-i18n-menu="menuInvoices"><span class="dash-icon">📄</span> الفواتير <span class="dash-arrow">▶</span></div>
-    <div class="dash-submenu">
-      <a href="invoices-view.html" data-i18n-menu="menuInvoicesBranch"><span class="dash-icon">🏪</span> فواتير الفروع</a>
-      <a href="inventory-view.html" data-i18n-menu="menuInvoicesInventory"><span class="dash-icon">📦</span> فواتير الجرد</a>
-    </div>
-  </div>
-  <div class="dash-group">
-    <div class="dash-toggle" data-i18n-menu="menuAdmin"><span class="dash-icon">⚙️</span> الإدارة <span class="dash-arrow">▶</span></div>
-    <div class="dash-submenu">
-      <a href="admin.html" data-i18n-menu="menuAdminGeneral"><span class="dash-icon">🛠️</span> إدارة عامة</a>
-      <a href="admins.html" data-i18n-menu="menuAdminManagers"><span class="dash-icon">🔐</span> إدارة المدراء</a>
-      <a href="statistics.html" data-i18n-menu="menuAdminStats"><span class="dash-icon">📊</span> إحصائيات الطلبات</a>
-    </div>
-  </div>
-</div>
-<script>
-document.addEventListener("click",function(e){
-  var btn=document.getElementById("dashMenuBtn"),menu=document.getElementById("dashMenuDropdown");
-  if(!btn||!menu)return;
-  if(btn.contains(e.target)){btn.classList.toggle("active");menu.classList.toggle("show");}
-  else if(menu.contains(e.target)){
-    var toggle=e.target.closest(".dash-toggle");
-    if(toggle){e.stopPropagation();var sub=toggle.nextElementSibling;if(sub&&sub.classList.contains("dash-submenu")){sub.classList.toggle("open");toggle.classList.toggle("open");}}
-  }
-  else{btn.classList.remove("active");menu.classList.remove("show");}
-});
-(function(){
-  var LANG_KEY="sallah_lang";
-  function getLang(){return localStorage.getItem(LANG_KEY)||"ar";}
-  var menuT={ar:{menuStore:"المتجر",menuCart:"السلة",menuInvoices:"الفواتير",menuAdmin:"الإدارة",menuCartPurchase:"سلة المشتريات",menuCartInventory:"سلة الجرد",menuInvoicesBranch:"فواتير الفروع",menuInvoicesInventory:"فواتير الجرد",menuAdminGeneral:"إدارة عامة",menuAdminManagers:"إدارة المدراء",menuAdminStats:"إحصائيات الطلبات"},en:{menuStore:"Store",menuCart:"Cart",menuInvoices:"Invoices",menuAdmin:"Admin",menuCartPurchase:"Purchase Cart",menuCartInventory:"Inventory Cart",menuInvoicesBranch:"Branch Invoices",menuInvoicesInventory:"Inventory Invoices",menuAdminGeneral:"General Admin",menuAdminManagers:"Admin Management",menuAdminStats:"Order Statistics"}};
-  function applyMenu(){
-    var lang=getLang();var tr=menuT[lang]||menuT.ar;
-    document.querySelectorAll("#dashMenuDropdown a, #dashMenuDropdown .dash-toggle").forEach(function(el){
-      var key=el.getAttribute("data-i18n-menu");if(!key||!tr[key])return;
-      var icon=el.querySelector(".dash-icon");var iconHtml=icon?icon.outerHTML:"";
-      var arrow=el.querySelector(".dash-arrow");var arrowHtml=arrow?arrow.outerHTML:"";
-      el.innerHTML=iconHtml+" "+tr[key]+" "+arrowHtml;
-    });
-  }
-  applyMenu();
-})();
-</script>
+  <script type="module" src="js/chrome.js?v=20260802"></script>
 </body>
 </html>

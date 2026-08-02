@@ -1,25 +1,20 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>فواتير الجرد</title>
   <link rel="icon" type="image/png" href="images/icon.png">
-  <link rel="stylesheet" href="css/style.css?v=20260705-2">
+  <link rel="stylesheet" href="css/style.css?v=20260714-2">
+  <link rel="stylesheet" href="css/app.css?v=20260802">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    html, body { margin:0; padding:0; background:#F6F1EB; font-family:'Cairo','Poppins',Arial,sans-serif; color:#2B2424; }
-    .iv-header { background:linear-gradient(135deg,#705f34 0%,#325247 50%,#414935 100%); color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; position:sticky; top:0; z-index:100; box-shadow:0 2px 10px rgba(0,0,0,.15); }
-    .iv-header .logo { height:38px; width:auto; }
-    .iv-header h1 { margin:0; font-size:20px; font-weight:800; }
-    .iv-container { max-width:1100px; margin:0 auto; padding:18px; }
-    .iv-toolbar { display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
-    .iv-toolbar-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .iv-search { flex:1; min-width:180px; padding:12px 16px; border:1.5px solid rgba(122,102,85,.2); border-radius:999px; font-size:14px; box-sizing:border-box; background:#fff; outline:none; transition:all .3s; text-align:center; }
-    .iv-search:focus { border-color:#B08A52; box-shadow:0 0 0 3px rgba(176,138,82,.15); }
-    .iv-grid { display:grid; gap:14px; }
+    .view-container { max-width:1100px; margin:0 auto; padding:18px; }
+    .view-search { width:100%; padding:12px 16px; border:1.5px solid rgba(122,102,85,.2); border-radius:999px; font-size:14px; margin-bottom:18px; box-sizing:border-box; background:#fff; outline:none; transition:all .3s; text-align:center; }
+    .view-search:focus { border-color:#B08A52; box-shadow:0 0 0 3px rgba(176,138,82,.15); }
     .iv-loading { text-align:center; padding:40px; color:#B08A52; font-size:15px; font-weight:700; }
     .iv-empty { text-align:center; padding:40px; color:#7A6655; font-size:15px; }
     .iv-error { text-align:center; padding:40px; color:#dc3545; font-size:15px; }
@@ -27,7 +22,8 @@
     .iv-branch-card { background:#fff; border:2px solid rgba(199,178,153,.25); border-radius:16px; padding:18px 12px; text-align:center; cursor:pointer; transition:all .3s; box-shadow:0 4px 20px rgba(69,54,48,.08); display:flex; flex-direction:column; align-items:center; gap:8px; }
     .iv-branch-card:hover { border-color:#B08A52; box-shadow:0 8px 30px rgba(69,54,48,.12); transform:translateY(-2px); }
     .iv-branch-card.active { border-color:#453630; background:#453630; color:#fff; box-shadow:0 4px 16px rgba(69,54,48,.25); }
-    .iv-branch-card .branch-icon { font-size:36px; }
+    .iv-branch-card .branch-icon { width:36px; height:36px; color:#B08A52; }
+    .iv-branch-card.active .branch-icon { color:#fff; }
     .iv-branch-card .branch-label { font-size:14px; font-weight:800; }
     .iv-branch-back { background:#453630; color:#fff; border:none; border-radius:10px; padding:9px 18px; cursor:pointer; font-size:13px; font-weight:800; transition:all .3s; margin-bottom:14px; display:inline-flex; align-items:center; gap:6px; }
     .iv-branch-back:hover { background:#B08A52; }
@@ -41,27 +37,27 @@
     .iv-op-info div { display:flex; align-items:center; gap:4px; }
     .iv-op-info .counted { color:#28a745; font-weight:800; }
     .iv-op-info .uncounted { color:#dc3545; font-weight:800; }
-    .iv-op-btns { display:flex; gap:6px; margin-top:8px; }
-    .iv-op-toggle-btn { background:#453630; color:#fff; border:none; border-radius:10px; padding:7px 16px; cursor:pointer; font-size:12px; font-weight:700; transition:all .3s; }
+    .iv-op-btns { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+    .iv-op-toggle-btn { background:#453630; color:#fff; border:none; border-radius:10px; padding:7px 16px; cursor:pointer; font-size:12px; font-weight:700; transition:all .3s; display:inline-flex; align-items:center; gap:6px; }
     .iv-op-toggle-btn:hover { background:#B08A52; }
-    .iv-op-print-btn { background:#B08A52; color:#fff; border:none; border-radius:10px; padding:7px 16px; cursor:pointer; font-size:12px; font-weight:700; transition:all .3s; }
+    .iv-op-print-btn { background:#B08A52; color:#fff; border:none; border-radius:10px; padding:7px 16px; cursor:pointer; font-size:12px; font-weight:700; transition:all .3s; display:inline-flex; align-items:center; gap:6px; }
     .iv-op-print-btn:hover { background:#453630; }
-    .iv-op-del-btn { background:rgba(220,53,69,.1); color:#dc3545; border:1.5px solid rgba(220,53,69,.2); border-radius:10px; padding:7px 16px; cursor:pointer; font-size:12px; font-weight:700; transition:all .3s; display:none; }
+    .iv-op-del-btn { background:rgba(220,53,69,.1); color:#dc3545; border:1.5px solid rgba(220,53,69,.2); border-radius:10px; padding:7px 16px; cursor:pointer; font-size:12px; font-weight:700; transition:all .3s; display:none; align-items:center; gap:6px; }
     .iv-op-del-btn:hover { background:rgba(220,53,69,.2); }
-    .iv-op-del-btn.show { display:inline-block; }
+    .iv-op-del-btn.show { display:inline-flex; }
     .iv-detail-table { width:100%; border-collapse:collapse; margin-top:10px; display:none; border-radius:10px; overflow:hidden; }
     .iv-detail-table.show { display:table; }
     .iv-detail-table th { background:#F6F1EB; padding:8px 10px; border:1px solid rgba(199,178,153,.3); font-size:12px; font-weight:800; color:#453630; }
     .iv-detail-table td { padding:6px 10px; border:1px solid rgba(199,178,153,.2); font-size:12px; color:#2B2424; }
-    .iv-detail-table .uncounted-row td { color:#dc3545; font-weight:700; }
-    .iv-detail-table .uncounted-label { color:#dc3545; font-weight:800; font-size:11px; }
     .iv-header-left { display:flex; align-items:center; gap:8px; }
-    .iv-user-info { font-size:12px; opacity:.9; }
-    .iv-logout-btn { background:rgba(255,255,255,.15); border:1.5px solid rgba(255,255,255,.3); border-radius:10px; padding:5px 12px; font-size:12px; font-weight:700; cursor:pointer; color:#fff; transition:all .3s; }
-    .iv-logout-btn:hover { background:rgba(255,255,255,.25); }
-    .lang-toggle-btn { background:transparent; border:none; border-radius:6px; padding:5px 12px; font-size:12px; font-weight:700; cursor:pointer; color:#fff; transition:all .3s; }
-    .lang-toggle-btn:hover { opacity:.8; }
-    /* Admin modal */
+    .view-user-info { font-size:12px; font-weight:700; color:var(--v2-text); display:inline-flex; align-items:center; gap:4px; }
+    .iv-prod-img { width:32px;height:32px;border-radius:6px;object-fit:cover;display:block;margin:0 auto; }
+    .iv-cat-header { background:#d9d9d9;border:1px solid #bbb;padding:6px 10px;font-size:13px;font-weight:900;text-align:center; }
+    .iv-uncounted-btn { background:rgba(220,53,69,.08);border:1px dashed rgba(220,53,69,.3);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;color:#dc3545;transition:all .3s;margin-top:4px;margin-bottom:6px;width:100%;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:6px; }
+    .iv-uncounted-btn:hover { background:rgba(220,53,69,.15); }
+    .iv-detail-table td img { width:32px;height:32px;border-radius:6px;object-fit:cover; }
+    .iv-uncounted-row td { color:#dc3545;font-weight:700; }
+    .iv-unknown-label { color:#dc3545;font-weight:800;font-size:11px; }
     .admin-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9998; display:none; align-items:center; justify-content:center; }
     .admin-modal-overlay.active { display:flex; }
     .admin-modal-box { background:#fff; border-radius:24px; padding:30px; max-width:380px; width:90%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.2); position:relative; }
@@ -69,26 +65,67 @@
     .admin-modal-box p { color:#888; font-size:13px; margin-bottom:16px; }
     .admin-modal-box input { width:100%; padding:12px; border:1.5px solid rgba(122,102,85,.2); border-radius:10px; font-size:14px; margin-bottom:10px; background:#f9f8f6; box-sizing:border-box; outline:none; }
     .admin-modal-box input:focus { border-color:#B08A52; }
-    .admin-modal-box button[type="submit"] { width:100%; padding:14px; border:none; border-radius:10px; background:linear-gradient(135deg,#325247,#414935); color:#fff; font-size:16px; font-weight:800; cursor:pointer; }
-    .admin-modal-box .admin-close-btn { position:absolute; top:12px; right:12px; background:transparent; border:none; font-size:22px; cursor:pointer; color:#888; line-height:1; }
+    .admin-modal-box button[type="submit"], .admin-modal-box .admin-modal-btn { width:100%; padding:14px; border:none; border-radius:10px; background:linear-gradient(135deg,#325247,#414935); color:#fff; font-size:16px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+    .admin-modal-box .admin-confirm-btn { background:#dc3545; }
+    .admin-modal-box .admin-close-btn { position:absolute; top:12px; right:12px; background:transparent; border:none; cursor:pointer; color:#888; line-height:1; padding:6px; }
     .admin-modal-error { color:#dc3545; font-size:13px; margin-top:8px; min-height:18px; }
-
-    .iv-prod-img { width:32px;height:32px;border-radius:6px;object-fit:cover;display:block;margin:0 auto; }
-    .iv-cat-header { background:#d9d9d9;border:1px solid #bbb;padding:6px 10px;font-size:13px;font-weight:900;text-align:center; }
-    .iv-uncounted-btn { background:rgba(220,53,69,.08);border:1px dashed rgba(220,53,69,.3);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;color:#dc3545;transition:all .3s;margin-top:4px;margin-bottom:6px;width:100%;text-align:center; }
-    .iv-uncounted-btn:hover { background:rgba(220,53,69,.15); }
-    .iv-detail-table td img { width:32px;height:32px;border-radius:6px;object-fit:cover; }
-    .iv-uncounted-row td { color:#dc3545;font-weight:700; }
-    .iv-unknown-label { color:#dc3545;font-weight:800;font-size:11px; }
     @media(max-width:768px){ .iv-branches { grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); } }
   </style>
 </head>
-<body>
+<body class="app-v2">
+
+  <!-- ========== APP HEADER (sticky) ========== -->
+  <header class="app-header">
+    <div class="app-header__inner">
+      <button class="icon-btn" id="menuBtn" type="button" aria-label="القائمة"><i data-lucide="menu"></i></button>
+      <a href="dashboard.html" class="app-logo-link"><img src="images/logo.png" class="app-logo" alt="سمسم"></a>
+      <div class="app-actions" style="margin-inline-start:auto;">
+        <button class="icon-btn icon-btn--label" id="viewLangToggle" type="button"><i data-lucide="globe"></i><span>EN</span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== DRAWER ========== -->
+  <aside class="app-drawer" id="appDrawer" aria-hidden="true">
+    <div class="app-drawer__header">
+      <img src="images/logo.png" alt="سمسم">
+      <button class="app-drawer__close" id="appDrawerClose" type="button" aria-label="إغلاق"><i data-lucide="x"></i></button>
+    </div>
+    <nav class="app-drawer__nav">
+      <a class="drawer-link" href="index.html" data-i18n-menu="menuStore"><i data-lucide="store"></i><span class="drawer-label">المتجر</span></a>
+
+      <div class="drawer-group open">
+        <button class="drawer-toggle" type="button" data-i18n-menu="menuCart"><i data-lucide="shopping-cart"></i><span class="drawer-label">السلة</span><span class="drawer-arrow"><i data-lucide="chevron-right"></i></span></button>
+        <div class="drawer-submenu">
+          <a href="cart.html" data-i18n-menu="menuCartPurchase"><i data-lucide="shopping-bag"></i><span class="drawer-label">سلة المشتريات</span></a>
+          <a href="inventory-cart.html" data-i18n-menu="menuCartInventory"><i data-lucide="package"></i><span class="drawer-label">سلة الجرد</span></a>
+        </div>
+      </div>
+
+      <div class="drawer-group open">
+        <button class="drawer-toggle" type="button" data-i18n-menu="menuInvoices"><i data-lucide="file-text"></i><span class="drawer-label">الفواتير</span><span class="drawer-arrow"><i data-lucide="chevron-right"></i></span></button>
+        <div class="drawer-submenu">
+          <a href="invoices-view.html" data-i18n-menu="menuInvoicesBranch"><i data-lucide="building-2"></i><span class="drawer-label">فواتير الفروع</span></a>
+          <a class="is-active" href="inventory-view.html" data-i18n-menu="menuInvoicesInventory"><i data-lucide="boxes"></i><span class="drawer-label">فواتير الجرد</span></a>
+        </div>
+      </div>
+
+      <div class="drawer-group">
+        <button class="drawer-toggle" type="button" data-i18n-menu="menuAdmin"><i data-lucide="settings"></i><span class="drawer-label">الإدارة</span><span class="drawer-arrow"><i data-lucide="chevron-right"></i></span></button>
+        <div class="drawer-submenu">
+          <a href="admin.html" data-i18n-menu="menuAdminGeneral"><i data-lucide="sliders-horizontal"></i><span class="drawer-label">إدارة عامة</span></a>
+          <a href="admins.html" data-i18n-menu="menuAdminManagers"><i data-lucide="shield-check"></i><span class="drawer-label">إدارة المدراء</span></a>
+          <a href="statistics.html" data-i18n-menu="menuAdminStats"><i data-lucide="bar-chart-3"></i><span class="drawer-label">إحصائيات الطلبات</span></a>
+        </div>
+      </div>
+    </nav>
+  </aside>
+  <div class="app-drawer__backdrop" id="appDrawerBackdrop"></div>
 
   <!-- LOGIN REQUIRED OVERLAY -->
   <div id="loginOverlay" style="position:fixed;inset:0;background:linear-gradient(135deg,#705f34 0%,#325247 50%,#414935 100%);z-index:9999;display:flex;align-items:center;justify-content:center;">
     <div style="background:#fff;border-radius:24px;padding:36px;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative;">
-      <button id="loginLangToggle" class="lang-toggle-btn" type="button" style="position:absolute;top:12px;left:12px;background:transparent;border:none;box-shadow:none;color:#222;">🌐 EN</button>
+      <button id="loginLangToggle" class="icon-btn icon-btn--label" type="button" style="position:absolute;top:12px;left:12px;width:auto;margin:0;padding:8px 10px;background:transparent;border:none;box-shadow:none;color:#222;"><i data-lucide="globe"></i><span>EN</span></button>
       <img src="images/logo.png" alt="Logo" style="width:100px;height:auto;margin:0 auto 12px;" onerror="this.style.display='none'">
       <h2 id="loginTitle" style="color:#111;font-size:22px;margin-bottom:4px;">فواتير الجرد</h2>
       <p id="loginSub" style="color:#888;font-size:14px;margin-bottom:20px;">سجّل دخولك لعرض فواتير الجرد</p>
@@ -97,7 +134,7 @@
         <option value="">-- اختر الاسم --</option>
       </select>
       <input type="password" id="loginPin" placeholder="كلمة المرور" autocomplete="off" style="width:100%;padding:12px;border:1.5px solid rgba(122,102,85,.2);border-radius:10px;font-size:14px;margin-bottom:10px;display:none;">
-      <button id="loginSubmit" type="button" style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#325247,#414935);color:#fff;font-size:16px;font-weight:800;cursor:pointer;display:none;">دخول</button>
+      <button id="loginSubmit" type="button" style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#325247,#414935);color:#fff;font-size:16px;font-weight:800;cursor:pointer;display:none;"><i data-lucide="log-in"></i><span>دخول</span></button>
       <div id="loginError" style="color:#dc3545;font-size:13px;margin-top:8px;min-height:18px;"></div>
     </div>
   </div>
@@ -105,20 +142,20 @@
   <!-- ADMIN LOGIN + CONFIRM MODAL -->
   <div id="adminModal" class="admin-modal-overlay">
     <div class="admin-modal-box">
-      <button class="admin-close-btn" id="adminModalClose">&times;</button>
+      <button class="admin-close-btn" id="adminModalClose" type="button" aria-label="إغلاق"><i data-lucide="x"></i></button>
       <img src="images/logo.png" alt="Logo" style="width:70px;height:auto;margin:0 auto 8px;" onerror="this.style.display='none'">
       <div class="admin-login-section">
-        <h2 id="adminModalTitle">🔐 دخول المدير</h2>
+        <h2 id="adminModalTitle">دخول المدير</h2>
         <p id="adminModalSub">سجّل دخولك كمدير لحذف الفاتورة</p>
         <input type="text" id="adminModalUser" placeholder="اسم المستخدم" autocomplete="off">
         <input type="password" id="adminModalPass" placeholder="كلمة المرور" autocomplete="off">
-        <button type="button" id="adminModalLogin">دخول</button>
+        <button type="button" class="admin-modal-btn" id="adminModalLogin"><i data-lucide="log-in"></i><span>دخول</span></button>
         <div id="adminModalError" class="admin-modal-error"></div>
       </div>
       <div id="adminConfirmSection" style="display:none;">
         <p id="adminConfirmMsg" style="font-size:14px;color:#333;margin-bottom:12px;font-weight:700;">اكتب Yes لتأكيد الحذف</p>
         <input type="text" id="adminConfirmInput" placeholder="Yes" autocomplete="off" style="width:100%;padding:12px;border:1.5px solid rgba(122,102,85,.2);border-radius:10px;font-size:14px;margin-bottom:10px;background:#f9f8f6;text-align:center;font-weight:800;letter-spacing:4px;">
-        <button type="button" id="adminConfirmBtn" style="width:100%;padding:14px;border:none;border-radius:10px;background:#dc3545;color:#fff;font-size:16px;font-weight:800;cursor:pointer;">تأكيد الحذف</button>
+        <button type="button" class="admin-modal-btn admin-confirm-btn" id="adminConfirmBtn"><i data-lucide="trash-2"></i><span>تأكيد الحذف</span></button>
         <div id="adminConfirmError" class="admin-modal-error"></div>
       </div>
     </div>
@@ -126,27 +163,23 @@
 
   <!-- MAIN CONTENT (hidden until login) -->
   <div id="mainContent" style="display:none;">
-    <div class="iv-header">
-      <img src="images/logo.png" class="logo" alt="Logo">
-      <h1 id="viewTitle">📦 فواتير الجرد / Inventory Count Invoices</h1>
-      <div class="iv-header-left">
-        <span id="viewUserInfo" class="iv-user-info"></span>
-        <button id="viewLogoutBtn" class="iv-logout-btn" type="button">🚪 تسجيل الخروج</button>
-        <button id="viewLangToggle" class="lang-toggle-btn" type="button" style="color:#fff;">🌐 EN</button>
-      </div>
-    </div>
-    <div class="iv-container">
-      <div class="iv-toolbar">
-        <div class="iv-toolbar-row">
-          <input type="text" id="viewSearch" class="iv-search" placeholder="🔍 البحث في فواتير الجرد...">
+    <div class="view-container">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <h1 id="viewTitle" style="margin:0;font-size:20px;font-weight:800;color:var(--v2-text);">فواتير الجرد</h1>
+        <div class="view-header-left">
+          <span id="viewUserInfo" class="view-user-info"></span>
+          <button id="viewLogoutBtn" class="btn-danger" type="button" style="padding:6px 12px;"><i data-lucide="log-out"></i><span>تسجيل الخروج</span></button>
         </div>
+      </div>
+      <div class="iv-toolbar" style="margin-bottom:14px;">
+        <input type="text" id="viewSearch" class="view-search" placeholder="البحث في فواتير الجرد...">
       </div>
       <div id="branchesSection">
         <div id="branchesGrid" class="iv-branches"></div>
       </div>
       <div id="opsSection" style="display:none;">
-        <button id="backToBranchesBtn" class="iv-branch-back" type="button">🔙 الرجوع للفروع</button>
-        <div id="selectedBranchTitle" style="font-size:18px;font-weight:800;color:#453630;margin-bottom:12px;"></div>
+        <button id="backToBranchesBtn" class="iv-branch-back" type="button"><i data-lucide="arrow-left"></i><span>الرجوع للفروع</span></button>
+        <div id="selectedBranchTitle" style="font-size:18px;font-weight:800;color:#453630;margin-bottom:12px;display:flex;align-items:center;gap:8px;"></div>
         <div id="opsList" class="iv-ops"><div class="iv-loading">جاري تحميل العمليات...</div></div>
       </div>
     </div>
@@ -156,7 +189,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import { getFirestore, collection, query, orderBy, getDocs, where, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
     import { generateInvoicePdf } from "./js/invoice-pdf.js";
-
+    import { setLabel } from "./js/i18n.js";
 
     const mainFirebaseConfig = {
       apiKey: "AIzaSyDmmwICZYXE_eTzUt8YuZ8VhOtFOO3DssQ",
@@ -208,46 +241,46 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
       ar: {
         loginTitle:"فواتير الجرد", loginSub:"سجّل دخولك لعرض فواتير الجرد",
         selectName:"-- اختر الاسم --", pinPlaceholder:"كلمة المرور",
-        submit:"دخول", title:"📦 فواتير الجرد / Inventory Count Invoices",
-        search:"🔍 البحث في فواتير الجرد...", loading:"جاري تحميل العمليات...",
+        submit:"دخول", title:"فواتير الجرد",
+        search:"البحث في فواتير الجرد...", loading:"جاري تحميل العمليات...",
         empty:"لا توجد عمليات جرد", emptyBranch:"اختر فرعاً لعرض عمليات الجرد",
-        show:"عرض التفاصيل", hide:"إخفاء", print:"🖨 تحميل PDF",
+        show:"عرض التفاصيل", hide:"إخفاء", print:"تحميل PDF",
         items:"المنتجات", qty:"الكمية", product:"المنتج", sku:"الرمز", noItems:"لا توجد منتجات",
         counted:"تم الجرد", uncounted:"لم يتم الجرد",
         account:"تم الجرد بواسطة", date:"التاريخ", countedCount:"عدد المنتجات المجرودة",
         uncountedCount:"عدد المنتجات غير المجرودة",
-        logout:"🚪 تسجيل الخروج", logoutConfirm:"هل تريد تسجيل الخروج؟",
-        toggle:"🌐 EN", selectNameErr:"اختر الاسم",
+        logout:"تسجيل الخروج", logoutConfirm:"هل تريد تسجيل الخروج؟",
+        toggle:"EN", selectNameErr:"اختر الاسم",
         enterPin:"الرجاء إدخال كلمة المرور", accountNotFound:"الحساب غير موجود", wrongPassword:"كلمة المرور خاطئة",
         inventoryAccountRequired:"هذا الحساب لا يمكنه الدخول لصفحة الجرد. استخدم حساب جرد مخزون.",
-        adminTitle:"🔐 دخول المدير", adminSub:"سجّل دخولك كمدير لحذف الفاتورة",
+        adminTitle:"دخول المدير", adminSub:"سجّل دخولك كمدير لحذف الفاتورة",
         adminUserPlaceholder:"اسم المستخدم", adminPassPlaceholder:"كلمة المرور", adminLogin:"دخول",
         adminDeleteBtn:"حذف",
-        confirmDeleteMsg:"اكتب Yes لتأكيد حذف الفاتورة", confirmDeleteErr:"يجب كتابة Yes للتأكيد",
-        back:"🔙 الرجوع للفروع", category:"القسم", status:"الحالة",
+        confirmDeleteMsg:"اكتب Yes لتأكيد حذف الفاتورة", confirmDeleteErr:"يجب كتابة Yes للتأكيد", confirmDelete:"تأكيد الحذف",
+        back:"الرجوع للفروع", category:"القسم", status:"الحالة",
         showUncounted:"إظهار المنتجات غير المجرودة", hideUncounted:"إخفاء الغير مجرودة",
         unknownQty:"غير معلوم",
       },
       en: {
         loginTitle:"Inventory Invoices", loginSub:"Login to view inventory invoices",
         selectName:"-- Select Name --", pinPlaceholder:"Password",
-        submit:"Login", title:"📦 Inventory Count Invoices",
-        search:"🔍 Search inventory invoices...", loading:"Loading operations...",
+        submit:"Login", title:"Inventory Invoices",
+        search:"Search inventory invoices...", loading:"Loading operations...",
         empty:"No inventory operations", emptyBranch:"Select a branch to view inventory operations",
-        show:"Show Details", hide:"Hide", print:"🖨 Download PDF",
+        show:"Show Details", hide:"Hide", print:"Download PDF",
         items:"Items", qty:"Qty", product:"Product", sku:"SKU", noItems:"No products",
         counted:"Counted", uncounted:"Not Counted",
         account:"Counted by", date:"Date", countedCount:"Counted Products",
         uncountedCount:"Uncounted Products",
-        logout:"🚪 Logout", logoutConfirm:"Are you sure you want to logout?",
-        toggle:"🌐 عربي", selectNameErr:"Select a name",
+        logout:"Logout", logoutConfirm:"Are you sure you want to logout?",
+        toggle:"عربي", selectNameErr:"Select a name",
         enterPin:"Please enter password", accountNotFound:"Account not found", wrongPassword:"Wrong PIN",
         inventoryAccountRequired:"This account cannot access the inventory page. Use an Inventory Account.",
-        adminTitle:"🔐 Admin Login", adminSub:"Login as admin to delete the invoice",
+        adminTitle:"Admin Login", adminSub:"Login as admin to delete the invoice",
         adminUserPlaceholder:"Username", adminPassPlaceholder:"Password", adminLogin:"Login",
         adminDeleteBtn:"Delete",
-        confirmDeleteMsg:"Type Yes to confirm deleting the invoice", confirmDeleteErr:"You must type Yes to confirm",
-        back:"🔙 Back to Branches", category:"Category", status:"Status",
+        confirmDeleteMsg:"Type Yes to confirm deleting the invoice", confirmDeleteErr:"You must type Yes to confirm", confirmDelete:"Confirm Delete",
+        back:"Back to Branches", category:"Category", status:"Status",
         showUncounted:"Show Uncounted Products", hideUncounted:"Hide Uncounted",
         unknownQty:"Unknown",
       }
@@ -258,14 +291,15 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
       const lang = getLang();
       document.documentElement.lang = lang;
       document.documentElement.dir = lang === "en" ? "ltr" : "rtl";
-      document.getElementById("loginLangToggle").textContent = tt("toggle");
+      const lt = document.getElementById("loginLangToggle");
+      if(lt) setLabel(lt, lang === "en" ? "عربي" : "EN");
       document.getElementById("loginTitle").textContent = tt("loginTitle");
       document.getElementById("loginSub").textContent = tt("loginSub");
       const nameSel = document.getElementById("loginName");
       if(nameSel){ const def = nameSel.querySelector('option[value=""]'); if(def) def.textContent = tt("selectName"); }
       document.getElementById("loginPin").placeholder = tt("pinPlaceholder");
-      document.getElementById("loginSubmit").textContent = tt("submit");
-      applyMenuLangInline();
+      const sub = document.getElementById("loginSubmit");
+      if(sub) setLabel(sub, tt("submit"));
     }
 
     function applyViewLang(){
@@ -274,29 +308,27 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
       document.documentElement.dir = lang === "en" ? "ltr" : "rtl";
       document.getElementById("viewTitle").textContent = tt("title");
       document.getElementById("viewSearch").placeholder = tt("search");
-      document.getElementById("viewLangToggle").textContent = tt("toggle");
-      document.getElementById("viewLogoutBtn").textContent = tt("logout");
-      document.getElementById("backToBranchesBtn").innerHTML = tt("back");
-      document.getElementById("adminModalTitle").textContent = tt("adminTitle");
-      document.getElementById("adminModalSub").textContent = tt("adminSub");
-      document.getElementById("adminModalUser").placeholder = tt("adminUserPlaceholder");
-      document.getElementById("adminModalPass").placeholder = tt("adminPassPlaceholder");
-      document.getElementById("adminModalLogin").textContent = tt("adminLogin");
-      if(currentUser) document.getElementById("viewUserInfo").textContent = `👤 ${currentUser.name}`;
-      applyMenuLangInline();
-    }
-
-    function applyMenuLangInline(){
-      const lang = getLang();
-      const menuT={ar:{menuStore:"المتجر",menuCart:"السلة",menuInvoices:"الفواتير",menuAdmin:"الإدارة",menuCartPurchase:"سلة المشتريات",menuCartInventory:"سلة الجرد",menuInvoicesBranch:"فواتير الفروع",menuInvoicesInventory:"فواتير الجرد",menuAdminGeneral:"إدارة عامة",menuAdminManagers:"إدارة المدراء",menuAdminStats:"إحصائيات الطلبات"},en:{menuStore:"Store",menuCart:"Cart",menuInvoices:"Invoices",menuAdmin:"Admin",menuCartPurchase:"Purchase Cart",menuCartInventory:"Inventory Cart",menuInvoicesBranch:"Branch Invoices",menuInvoicesInventory:"Inventory Invoices",menuAdminGeneral:"General Admin",menuAdminManagers:"Admin Management",menuAdminStats:"Order Statistics"}};
-      const mtr=menuT[lang]||menuT.ar;
-      document.querySelectorAll("#dashMenuDropdown a, #dashMenuDropdown .dash-toggle").forEach(el=>{
-        const key=el.getAttribute("data-i18n-menu");
-        if(!key||!mtr[key])return;
-        const icon=el.querySelector(".dash-icon");const iconHtml=icon?icon.outerHTML:"";
-        const arrow=el.querySelector(".dash-arrow");const arrowHtml=arrow?arrow.outerHTML:"";
-        el.innerHTML=iconHtml+" "+mtr[key]+" "+arrowHtml;
-      });
+      const vt = document.getElementById("viewLangToggle");
+      if(vt) setLabel(vt, lang === "en" ? "عربي" : "EN");
+      const lo = document.getElementById("viewLogoutBtn");
+      if(lo) setLabel(lo, tt("logout"));
+      if(currentUser) document.getElementById("viewUserInfo").innerHTML = `<i data-lucide="user"></i> ${escapeHTML(currentUser.name)}`;
+      const backBtn = document.getElementById("backToBranchesBtn");
+      if(backBtn) setLabel(backBtn, tt("back"));
+      const bb = document.querySelector("#backToBranchesBtn i");
+      if(bb) bb.dataset.lucide = "arrow-left";
+      const amt = document.getElementById("adminModalTitle");
+      if(amt) amt.textContent = tt("adminTitle");
+      const ams = document.getElementById("adminModalSub");
+      if(ams) ams.textContent = tt("adminSub");
+      const amu = document.getElementById("adminModalUser");
+      if(amu) amu.placeholder = tt("adminUserPlaceholder");
+      const amp = document.getElementById("adminModalPass");
+      if(amp) amp.placeholder = tt("adminPassPlaceholder");
+      const aml = document.getElementById("adminModalLogin");
+      if(aml) setLabel(aml, tt("adminLogin"));
+      const acb = document.getElementById("adminConfirmBtn");
+      if(acb) setLabel(acb, tt("confirmDelete"));
     }
 
     /* LOGIN */
@@ -377,16 +409,16 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
     function checkSession(){
       try{
         const s = sessionStorage.getItem(SESSION_KEY);
-        if(s){ 
-          currentUser = JSON.parse(s); 
+        if(s){
+          currentUser = JSON.parse(s);
           // Block branch accounts from accessing inventory pages
           if(currentUser.accountType === "حساب فرع"){
             sessionStorage.removeItem(SESSION_KEY);
             alert(tt("inventoryAccountRequired"));
             return false;
           }
-          showMainContent(); 
-          return true; 
+          showMainContent();
+          return true;
         }
       }catch(e){}
       return false;
@@ -479,7 +511,7 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
         // Load products for uncounted feature
         await loadAllProducts();
       }catch(error){
-        document.getElementById("branchesGrid").innerHTML = `<div class="iv-error">${error.message}</div>`;
+        document.getElementById("branchesGrid").innerHTML = `<div class="iv-error">${escapeHTML(error.message)}</div>`;
       }
     }
 
@@ -491,17 +523,19 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
       allBranches.forEach(b => {
         const card = document.createElement("div");
         card.className = "iv-branch-card";
-        card.innerHTML = `<div class="branch-icon">🏪</div><div class="branch-label">${escapeHTML(b)}</div>`;
+        card.innerHTML = `<div class="branch-icon"><i data-lucide="store"></i></div><div class="branch-label">${escapeHTML(b)}</div>`;
         card.addEventListener("click", () => selectBranch(b));
         container.appendChild(card);
       });
+      if(window.refreshIcons) window.refreshIcons();
     }
 
     function selectBranch(branch){
       selectedBranch = branch;
       document.getElementById("branchesSection").style.display = "none";
       document.getElementById("opsSection").style.display = "";
-      document.getElementById("selectedBranchTitle").textContent = `📋 ${branch}`;
+      document.getElementById("selectedBranchTitle").innerHTML = `<i data-lucide="clipboard-list"></i><span>${escapeHTML(branch)}</span>`;
+      if(window.refreshIcons) window.refreshIcons();
       renderOperations();
     }
 
@@ -600,9 +634,9 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
               const ucId = "uc_" + cat.replace(/[^a-zA-Z0-9]/g,"_");
               const sectionIdx = uncountedSections.length;
               uncountedSections.push({ id: ucId, cat, count: allProds.length, products: allProds });
-              detailRows += `<tr><td colspan="4" style="padding:0;border:none;"><button class="iv-uncounted-btn" type="button" data-uc-idx="${sectionIdx}">📋 ${tt("showUncounted")} (${allProds.length})</button></td></tr>`;
+              detailRows += `<tr><td colspan="4" style="padding:0;border:none;"><button class="iv-uncounted-btn" type="button" data-uc-idx="${sectionIdx}"><i data-lucide="list"></i><span>${tt("showUncounted")} (${allProds.length})</span></button></td></tr>`;
               allProds.forEach(p => {
-                detailRows += `<tr class="iv-uncounted-row" style="display:none;" data-uc-cat="${ucId}"><td style="padding:4px 6px;border:1px solid #ddd;text-align:center;"><img src="${escapeHTML(getProductImage(p))}" alt="" onerror="this.src='images/noimg.jpg'" style="width:32px;height:32px;border-radius:6px;object-fit:cover;"></td><td style="padding:6px 10px;border:1px solid #ddd;">${escapeHTML(p.description || p.name || "")}${p.name?`<br><span style="font-size:13px;color:#333;font-weight:600;">${escapeHTML(p.name)}</span>`:""}</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center;"><span style="color:#dc3545;font-weight:800;font-size:12px;">${tt("unknownQty")}</span></td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center;"><span class="iv-unknown-label">⚠ ${tt("uncounted")}</span></td></tr>`;
+                detailRows += `<tr class="iv-uncounted-row" style="display:none;" data-uc-cat="${ucId}"><td style="padding:4px 6px;border:1px solid #ddd;text-align:center;"><img src="${escapeHTML(getProductImage(p))}" alt="" onerror="this.src='images/noimg.jpg'" style="width:32px;height:32px;border-radius:6px;object-fit:cover;"></td><td style="padding:6px 10px;border:1px solid #ddd;">${escapeHTML(p.description || p.name || "")}${p.name?`<br><span style="font-size:13px;color:#333;font-weight:600;">${escapeHTML(p.name)}</span>`:""}</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center;"><span style="color:#dc3545;font-weight:800;font-size:12px;">${tt("unknownQty")}</span></td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center;"><span class="iv-unknown-label">${tt("uncounted")}</span></td></tr>`;
               });
             }
             return;
@@ -611,7 +645,7 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
           detailRows += `<tr><td colspan="4" class="iv-cat-header">${escapeHTML(catEn)}</td></tr>`;
           grp.forEach(item => {
             const isCounted = item.qty > 0;
-            const statusLabel = isCounted ? `<span style="color:#28a745;font-weight:800;font-size:11px;">${tt("counted")}</span>` : `<span class="iv-unknown-label">⚠ ${tt("uncounted")}</span>`;
+            const statusLabel = isCounted ? `<span style="color:#28a745;font-weight:800;font-size:11px;">${tt("counted")}</span>` : `<span class="iv-unknown-label">${tt("uncounted")}</span>`;
             detailRows += `<tr><td style="padding:4px 6px;border:1px solid #ddd;text-align:center;"><img src="${escapeHTML(getItemImg(item))}" alt="" onerror="this.src='images/noimg.jpg'" style="width:32px;height:32px;border-radius:6px;object-fit:cover;"></td><td style="padding:6px 10px;border:1px solid #ddd;">${escapeHTML(item.description || item.name || "")}${item.name?`<br><span style="font-size:13px;color:#333;font-weight:600;">${escapeHTML(item.name)}</span>`:""}</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center;">${isCounted ? item.qty : "—"}</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center;">${statusLabel}</td></tr>`;
           });
           const uncountedProds = getUncountedForCat(cat);
@@ -619,9 +653,9 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
             const ucId = "uc_" + cat.replace(/[^a-zA-Z0-9]/g,"_");
             const sectionIdx = uncountedSections.length;
             uncountedSections.push({ id: ucId, cat, count: uncountedProds.length, products: uncountedProds });
-            detailRows += `<tr><td colspan="4" style="padding:0;border:none;"><button class="iv-uncounted-btn" type="button" data-uc-idx="${sectionIdx}">📋 ${tt("showUncounted")} (${uncountedProds.length})</button></td></tr>`;
+            detailRows += `<tr><td colspan="4" style="padding:0;border:none;"><button class="iv-uncounted-btn" type="button" data-uc-idx="${sectionIdx}"><i data-lucide="list"></i><span>${tt("showUncounted")} (${uncountedProds.length})</span></button></td></tr>`;
             uncountedProds.forEach(p => {
-              detailRows += `<tr class="iv-uncounted-row" style="display:none;" data-uc-cat="${ucId}"><td style="padding:4px 6px;border:1px solid #ddd;text-align:center;"><img src="${escapeHTML(getProductImage(p))}" alt="" onerror="this.src='images/noimg.jpg'" style="width:32px;height:32px;border-radius:6px;object-fit:cover;"></td><td style="padding:6px 10px;border:1px solid #ddd;">${escapeHTML(p.description || p.name || "")}${p.name?`<br><span style="font-size:13px;color:#333;font-weight:600;">${escapeHTML(p.name)}</span>`:""}</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center;"><span style="color:#dc3545;font-weight:800;font-size:12px;">${tt("unknownQty")}</span></td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center;"><span class="iv-unknown-label">⚠ ${tt("uncounted")}</span></td></tr>`;
+              detailRows += `<tr class="iv-uncounted-row" style="display:none;" data-uc-cat="${ucId}"><td style="padding:4px 6px;border:1px solid #ddd;text-align:center;"><img src="${escapeHTML(getProductImage(p))}" alt="" onerror="this.src='images/noimg.jpg'" style="width:32px;height:32px;border-radius:6px;object-fit:cover;"></td><td style="padding:6px 10px;border:1px solid #ddd;">${escapeHTML(p.description || p.name || "")}${p.name?`<br><span style="font-size:13px;color:#333;font-weight:600;">${escapeHTML(p.name)}</span>`:""}</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center;"><span style="color:#dc3545;font-weight:800;font-size:12px;">${tt("unknownQty")}</span></td><td style="padding:6px 10px;border:1px solid #ddd;text-align:center;"><span class="iv-unknown-label">${tt("uncounted")}</span></td></tr>`;
             });
           }
         });
@@ -632,15 +666,15 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
         card.innerHTML = `
           <div class="iv-op-header"><strong>${escapeHTML(accountName)}</strong><span>${dateStr}</span></div>
           <div class="iv-op-info">
-            <div>👤 ${tt("account")}: ${escapeHTML(accountName)}</div>
-            <div>📅 ${tt("date")}: ${dateStr}</div>
-            <div>✅ <span class="counted">${tt("countedCount")}: ${countedCount}</span></div>
-            <div>❌ <span class="uncounted">${tt("uncountedCount")}: ${totalUncounted}</span></div>
+            <div><i data-lucide="user"></i><span>${tt("account")}: ${escapeHTML(accountName)}</span></div>
+            <div><i data-lucide="calendar"></i><span>${tt("date")}: ${dateStr}</span></div>
+            <div><i data-lucide="check-circle"></i><span class="counted">${tt("countedCount")}: ${countedCount}</span></div>
+            <div><i data-lucide="x-circle"></i><span class="uncounted">${tt("uncountedCount")}: ${totalUncounted}</span></div>
           </div>
           <div class="iv-op-btns">
-            <button class="iv-op-toggle-btn" type="button">${tt("show")}</button>
-            <button class="iv-op-print-btn" type="button">${tt("print")}</button>
-            <button class="iv-op-del-btn show" type="button" data-id="${inv.id}">🗑 ${tt("adminDeleteBtn")}</button>
+            <button class="iv-op-toggle-btn" type="button"><i data-lucide="chevron-down"></i><span>${tt("show")}</span></button>
+            <button class="iv-op-print-btn" type="button"><i data-lucide="printer"></i><span>${tt("print")}</span></button>
+            <button class="iv-op-del-btn show" type="button" data-id="${inv.id}"><i data-lucide="trash-2"></i><span>${tt("adminDeleteBtn")}</span></button>
           </div>
           <table class="iv-detail-table"><thead><tr><th style="width:42px;">${tt("product")}</th><th>${tt("items")}</th><th style="width:60px;">${tt("qty")}</th><th style="width:80px;">${tt("status")}</th></tr></thead>
           <tbody>${detailRows || `<tr><td colspan="4" style="padding:8px;text-align:center;color:#888;">${tt("noItems")}</td></tr>`}</tbody></table>`;
@@ -648,7 +682,10 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
         card.querySelector(".iv-op-toggle-btn").addEventListener("click", function(){
           const tbl = card.querySelector(".iv-detail-table");
           tbl.classList.toggle("show");
-          this.textContent = tbl.classList.contains("show") ? tt("hide") : tt("show");
+          const icon = this.querySelector("i");
+          if(icon) icon.dataset.lucide = tbl.classList.contains("show") ? "chevron-up" : "chevron-down";
+          setLabel(this, tbl.classList.contains("show") ? tt("hide") : tt("show"));
+          if(window.refreshIcons) window.refreshIcons();
         });
 
         // Uncounted toggle buttons
@@ -661,9 +698,10 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
             const isHidden = this.dataset.ucOpen !== "1";
             rows.forEach(r => { r.style.display = isHidden ? "" : "none"; });
             this.dataset.ucOpen = isHidden ? "1" : "0";
-            this.textContent = isHidden
-              ? `🙈 ${tt("hideUncounted")}`
-              : `📋 ${tt("showUncounted")} (${section.count})`;
+            const icon = this.querySelector("i");
+            if(icon) icon.dataset.lucide = isHidden ? "eye-off" : "list";
+            setLabel(this, isHidden ? tt("hideUncounted") : `${tt("showUncounted")} (${section.count})`);
+            if(window.refreshIcons) window.refreshIcons();
           });
         });
 
@@ -685,6 +723,7 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
 
         container.appendChild(card);
       });
+      if(window.refreshIcons) window.refreshIcons();
     }
 
     function renderView(){
@@ -749,59 +788,6 @@ function setLang(l){ localStorage.setItem(LANG_KEY, l); }
     </div>
   </div>
 
-  <!-- FLOATING MENU -->
-  <button class="dash-menu-btn" id="dashMenuBtn" aria-label="القائمة"><span></span><span></span><span></span></button>
-  <div class="dash-menu-dropdown" id="dashMenuDropdown">
-    <a href="index.html" data-i18n-menu="menuStore"><span class="dash-icon">🛒</span> المتجر</a>
-    <div class="dash-group">
-      <div class="dash-toggle" data-i18n-menu="menuCart"><span class="dash-icon">📋</span> السلة <span class="dash-arrow">▶</span></div>
-      <div class="dash-submenu">
-        <a href="cart.html" data-i18n-menu="menuCartPurchase"><span class="dash-icon">🛍️</span> سلة المشتريات</a>
-        <a href="inventory-cart.html" data-i18n-menu="menuCartInventory"><span class="dash-icon">📦</span> سلة الجرد</a>
-      </div>
-    </div>
-    <div class="dash-group">
-      <div class="dash-toggle" data-i18n-menu="menuInvoices"><span class="dash-icon">📄</span> الفواتير <span class="dash-arrow">▶</span></div>
-      <div class="dash-submenu">
-        <a href="invoices-view.html" data-i18n-menu="menuInvoicesBranch"><span class="dash-icon">🏪</span> فواتير الفروع</a>
-        <a href="inventory-view.html" data-i18n-menu="menuInvoicesInventory" style="background:rgba(176,138,82,.1);font-weight:800;"><span class="dash-icon">📦</span> فواتير الجرد</a>
-      </div>
-    </div>
-    <div class="dash-group">
-      <div class="dash-toggle" data-i18n-menu="menuAdmin"><span class="dash-icon">⚙️</span> الإدارة <span class="dash-arrow">▶</span></div>
-      <div class="dash-submenu">
-        <a href="admin.html" data-i18n-menu="menuAdminGeneral"><span class="dash-icon">🛠️</span> إدارة عامة</a>
-        <a href="admins.html" data-i18n-menu="menuAdminManagers"><span class="dash-icon">🔐</span> إدارة المدراء</a>
-        <a href="statistics.html" data-i18n-menu="menuAdminStats"><span class="dash-icon">📊</span> إحصائيات الطلبات</a>
-      </div>
-    </div>
-  </div>
-  <script>
-  document.addEventListener("click",function(e){
-    var btn=document.getElementById("dashMenuBtn"),menu=document.getElementById("dashMenuDropdown");
-    if(!btn||!menu)return;
-    if(btn.contains(e.target)){btn.classList.toggle("active");menu.classList.toggle("show");}
-    else if(menu.contains(e.target)){
-      var toggle=e.target.closest(".dash-toggle");
-      if(toggle){e.stopPropagation();var sub=toggle.nextElementSibling;if(sub&&sub.classList.contains("dash-submenu")){sub.classList.toggle("open");toggle.classList.toggle("open");}}
-    }
-    else{btn.classList.remove("active");menu.classList.remove("show");}
-  });
-  (function(){
-    var LANG_KEY="sallah_lang";
-    function getLang(){return localStorage.getItem(LANG_KEY)||"en";}
-    var menuT={ar:{menuStore:"المتجر",menuCart:"السلة",menuInvoices:"الفواتير",menuAdmin:"الإدارة",menuCartPurchase:"سلة المشتريات",menuCartInventory:"سلة الجرد",menuInvoicesBranch:"فواتير الفروع",menuInvoicesInventory:"فواتير الجرد",menuAdminGeneral:"إدارة عامة",menuAdminManagers:"إدارة المدراء",menuAdminStats:"إحصائيات الطلبات"},en:{menuStore:"Store",menuCart:"Cart",menuInvoices:"Invoices",menuAdmin:"Admin",menuCartPurchase:"Purchase Cart",menuCartInventory:"Inventory Cart",menuInvoicesBranch:"Branch Invoices",menuInvoicesInventory:"Inventory Invoices",menuAdminGeneral:"General Admin",menuAdminManagers:"Admin Management",menuAdminStats:"Order Statistics"}};
-    function applyMenu(){
-      var lang=getLang();var tr=menuT[lang]||menuT.ar;
-      document.querySelectorAll("#dashMenuDropdown a, #dashMenuDropdown .dash-toggle").forEach(function(el){
-        var key=el.getAttribute("data-i18n-menu");if(!key||!tr[key])return;
-        var icon=el.querySelector(".dash-icon");var iconHtml=icon?icon.outerHTML:"";
-        var arrow=el.querySelector(".dash-arrow");var arrowHtml=arrow?arrow.outerHTML:"";
-        el.innerHTML=iconHtml+" "+tr[key]+" "+arrowHtml;
-      });
-    }
-    applyMenu();
-  })();
-  </script>
+  <script type="module" src="js/chrome.js?v=20260802"></script>
 </body>
 </html>
