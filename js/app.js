@@ -61,17 +61,87 @@ function getCartTotalQty(){ return cart.reduce((sum,item) => sum + getItemQty(it
 /* ========================
    LANGUAGE TOGGLE
    ======================== */
-function applyLang(){
-  applyFullLang({
-    langToggle: "langToggle",
-    search: "search",
-    loginBtn: "loginBtn",
-    loginRequiredOverlay: "loginRequiredOverlay",
-    loginModal: "loginModal",
-    profile: true,
+function refreshIcons(){ if(window.lucide && window.lucide.createIcons){ try{ window.lucide.createIcons(); }catch(e){} } }
+
+function v2Text(id, key){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const t2 = el.querySelector(".btn-text") || el.querySelector("span");
+  if(t2) t2.textContent = t(key); else el.textContent = t(key);
+}
+function v2LangLabel(id){
+  const btn = document.getElementById(id);
+  if(!btn) return;
+  const span = btn.querySelector("span");
+  if(span) span.textContent = getLang() === "en" ? "عربي" : "EN";
+}
+function applyV2DrawerLang(){
+  document.querySelectorAll("#appDrawer [data-i18n-menu]").forEach(el => {
+    const key = el.getAttribute("data-i18n-menu");
+    if(!key) return;
+    const label = el.querySelector(".drawer-label");
+    if(label) label.textContent = t(key);
   });
-  const overlayBtn = document.getElementById("loginOverlayLangToggle");
-  if(overlayBtn) overlayBtn.textContent = getLang() === "en" ? "🌐 عربي" : "🌐 EN";
+}
+function applyLang(){
+  const lang = getLang();
+  const isEn = lang === "en";
+  document.documentElement.lang = lang;
+  document.documentElement.dir = isEn ? "ltr" : "rtl";
+
+  v2LangLabel("langToggle");
+  v2LangLabel("loginOverlayLangToggle");
+
+  const si = document.getElementById("search");
+  if(si) si.placeholder = t("searchPlaceholder");
+
+  const lb = document.getElementById("loginBtn");
+  if(lb){ const s = lb.querySelector("span"); if(s) s.textContent = t("login"); }
+
+  const ov = document.getElementById("loginRequiredOverlay");
+  if(ov){
+    const h2 = ov.querySelector("h2");
+    const p = ov.querySelector("p");
+    if(h2) h2.textContent = t("welcomeMsg");
+    if(p) p.textContent = t("welcomeSub");
+    v2Text("loginRequiredBtn", "loginBtnOverlay");
+  }
+
+  const lm = document.getElementById("loginModal");
+  if(lm){
+    const h2 = lm.querySelector("h2");
+    const sub = lm.querySelector(".modal-subtitle");
+    if(h2) h2.textContent = t("loginTitle");
+    if(sub) sub.textContent = t("loginSubtitle");
+    const sel = lm.querySelector("#loginAccountType");
+    if(sel && sel.options.length >= 3){
+      sel.options[0].textContent = t("accountType");
+      sel.options[1].textContent = t("accountTypeLab");
+      sel.options[2].textContent = t("accountTypeBranch");
+    }
+    const ns = lm.querySelector("#loginName");
+    if(ns){ const d = ns.querySelector('option[value=""]'); if(d) d.textContent = t("selectName"); }
+    const pin = lm.querySelector("#loginPin");
+    if(pin) pin.placeholder = t("pinPlaceholder");
+    v2Text("loginSubmit", "submit");
+  }
+
+  document.querySelectorAll("#profileDropdown [data-i18n]").forEach(el => { el.textContent = t(el.getAttribute("data-i18n")); });
+  v2Text("profileChangePinBtn", "changePin");
+  v2Text("profileInvoicesBtn", "myInvoices");
+  v2Text("profileLogoutBtn", "logout");
+  const pp = document.getElementById("profileTogglePin");
+  if(pp){
+    const s = pp.querySelector("span");
+    const pinEl = document.getElementById("profilePin");
+    if(s) s.textContent = (pinEl && pinEl.textContent === "****") ? t("show") : t("hide");
+  }
+
+  document.querySelectorAll(".cat-chip .cat-label[data-i18n-cat]").forEach(el => { el.textContent = catLabel(el.getAttribute("data-i18n-cat")); });
+  document.querySelectorAll("[data-i18n]:not([data-i18n-cat])").forEach(el => { el.textContent = t(el.getAttribute("data-i18n")); });
+
+  applyV2DrawerLang();
+  refreshIcons();
 }
 document.getElementById("langToggle")?.addEventListener("click", () => {
   setLang(getLang() === "ar" ? "en" : "ar");
@@ -119,46 +189,35 @@ function updateAuthUI(){
   const userProfileEl = document.getElementById("userProfile");
   if(currentCustomer){
     if(loginBtnEl) loginBtnEl.style.display = "none";
-    if(userProfileEl) userProfileEl.style.display = "inline-flex";
+    if(userProfileEl) userProfileEl.style.display = "flex";
     document.getElementById("loggedInUser").textContent = currentCustomer.name;
     document.getElementById("profileName").textContent = currentCustomer.name;
     document.getElementById("profileType").textContent = currentCustomer.accountType || (getLang()==="en"?"Not set":"غير محدد");
     document.getElementById("profileAvatar").textContent = (currentCustomer.name || "?")[0];
-    // Show/hide cart icon based on account type
-    if(currentCustomer.accountType === "حساب فرع"){
-      if(cartIconLink) cartIconLink.style.display = "flex";
-      const invIcon = document.getElementById("inventoryCartIconLink");
-      if(invIcon) invIcon.style.display = "none";
-    } else if(currentCustomer.accountType === "جرد مخزون"){
-      if(cartIconLink) cartIconLink.style.display = "none";
-      ensureInventoryIcon();
-    } else {
-      if(cartIconLink) cartIconLink.style.display = "none";
-      const invIcon = document.getElementById("inventoryCartIconLink");
-      if(invIcon) invIcon.style.display = "none";
+    const cartBtn = document.getElementById("cartIconLink");
+    if(cartBtn){
+      if(currentCustomer.accountType === "حساب فرع"){
+        cartBtn.href = "cart.html";
+        cartBtn.style.display = "inline-flex";
+        cartBtn.innerHTML = `<i data-lucide="shopping-cart"></i><span class="cart-badge" id="cartCount">0</span>`;
+      } else if(currentCustomer.accountType === "جرد مخزون"){
+        cartBtn.href = "inventory-cart.html";
+        cartBtn.style.display = "inline-flex";
+        cartBtn.innerHTML = `<i data-lucide="clipboard-list"></i><span class="cart-badge" id="cartCount">0</span>`;
+      } else {
+        cartBtn.style.display = "none";
+      }
+      refreshIcons();
+      updateCartCount();
+      updateInventoryCartCount();
     }
   }else{
     if(loginBtnEl) loginBtnEl.style.display = "inline-flex";
     if(userProfileEl) userProfileEl.style.display = "none";
-    if(cartIconLink) cartIconLink.style.display = "none";
-    const invIcon = document.getElementById("inventoryCartIconLink");
-    if(invIcon) invIcon.style.display = "none";
+    const cartBtn = document.getElementById("cartIconLink");
+    if(cartBtn) cartBtn.style.display = "none";
   }
-}
-
-function ensureInventoryIcon(){
-  if(document.getElementById("inventoryCartIconLink")) return;
-  try{
-    if(!cartIconLink || !cartIconLink.parentNode) return;
-    const el = document.createElement("a");
-    el.href = "inventory-cart.html";
-    el.className = "cart-icon inventory-cart-icon";
-    el.id = "inventoryCartIconLink";
-    el.style.cssText = "top:74px;background:linear-gradient(135deg,#325247,#414935);";
-    el.innerHTML = '📋 <span id="inventoryCartCount">0</span>';
-    cartIconLink.parentNode.insertBefore(el, cartIconLink.nextSibling);
-    updateInventoryCartCount();
-  }catch(e){}
+  refreshIcons();
 }
 
 /* ========================
@@ -209,7 +268,7 @@ function getAllowedCategories(){
 }
 function applyPermissions(){
   const allowed = getAllowedCategories();
-  document.querySelectorAll(".cat-card").forEach(card => {
+  document.querySelectorAll(".cat-chip").forEach(card => {
     const cat = card.dataset.cat;
     if(allowed.includes(cat)){
       card.style.display = "";
@@ -223,7 +282,7 @@ function applyPermissions(){
   });
 }
 function setActiveCategory(){
-  document.querySelectorAll(".cat-card").forEach(c => {
+  document.querySelectorAll(".cat-chip").forEach(c => {
     c.classList.toggle("active", c.dataset.cat === currentCategory);
   });
 }
@@ -235,10 +294,11 @@ function buildCategoryCards(){
   cats.forEach(cat=>{
     const count=allProducts.filter(p=>p.category===cat).length;
     const meta=getCatMetaObj(cat);
-    html+=`<div class="cat-card" data-cat="${cat}"><span class="cat-badge" data-cat-count="${cat}" style="display:${count>0?"":"none"}">${count}</span><span class="cat-label" data-i18n-cat="${cat}">${catLabel(cat)}</span>${meta.showDesc!==false&&meta.desc?`<div class="cat-desc">${escapeHTML(meta.desc)}</div>`:""}</div>`;
+    html+=`<button type="button" class="cat-chip" data-cat="${escapeHTML(cat)}"><span class="cat-count" data-cat-count="${escapeHTML(cat)}" style="display:${count>0?"":"none"}">${count}</span><span class="cat-label" data-i18n-cat="${escapeHTML(cat)}">${catLabel(cat)}</span>${meta.showDesc!==false&&meta.desc?`<span class="cat-desc">${escapeHTML(meta.desc)}</span>`:""}</button>`;
   });
   bar.innerHTML=html;
-  bar.querySelectorAll(".cat-card").forEach(card=>{
+  refreshIcons();
+  bar.querySelectorAll(".cat-chip").forEach(card=>{
     card.addEventListener("click",()=>{
       currentCategory=card.dataset.cat;
       setActiveCategory();
@@ -259,14 +319,15 @@ function buildCategoryCards(){
 /* ========================
    PRODUCTS
    ======================== */
-productsDiv.innerHTML = `<div style="text-align:center;padding:40px;color:var(--secondary);">${t("loading")}</div>`;
+productsDiv.innerHTML = `<div class="state-empty"><i data-lucide="loader"></i><h3>${t("loading")}</h3></div>`;
+refreshIcons();
 
 async function loadProducts(){
   const cached=getCachedProducts();
   if(cached&&cached.length){
     allProducts=cached;
     buildCategoryCards();
-    applyFullLang({ langToggle: "langToggle", search: "search", loginBtn: "loginBtn", loginRequiredOverlay: "loginRequiredOverlay", loginModal: "loginModal", profile: true });
+    applyLang();
     if(currentCustomer) renderProducts(getFilteredProducts());
     updateCategoryBadges();
   }
@@ -276,7 +337,7 @@ async function loadProducts(){
     querySnapshot.forEach(doc => allProducts.push({id:doc.id,...doc.data()}));
     setCachedProducts(allProducts);
     buildCategoryCards();
-    applyFullLang({ langToggle: "langToggle", search: "search", loginBtn: "loginBtn", loginRequiredOverlay: "loginRequiredOverlay", loginModal: "loginModal", profile: true });
+    applyLang();
     if(currentCustomer) renderProducts(getFilteredProducts());
     updateCategoryBadges();
   }catch(e){console.error(e);}
@@ -306,35 +367,39 @@ function getFilteredProducts(){
 function renderProducts(products){
   if(!productsDiv) return;
   if(products.length === 0){
-    productsDiv.innerHTML = `<div style="text-align:center;padding:40px;color:var(--secondary);grid-column:1/-1;">${t("noProducts")}</div>`;
+    productsDiv.innerHTML = `<div class="state-empty"><i data-lucide="package-open"></i><h3>${t("noProducts")}</h3></div>`;
+    refreshIcons();
     return;
   }
+  const isInv = currentCustomer && currentCustomer.accountType === "جرد مخزون";
+  const invLabel = getLang() === "en" ? "Count" : "جرد";
   let html="";
   for(let i=0;i<products.length;i++){
     const product=products[i];
     const pid = product.id;
     if(!productQuantities[pid]) productQuantities[pid] = 1;
     const qty = productQuantities[pid];
-    html+=`<div class="product" style="animation-delay:${Math.random()*.2}s">
+    html+=`<div class="product-card" style="animation-delay:${(i%12)*0.03}s">
       <div class="product-img-wrap">
         <img src="${escapeHTML(getProductImage(product))}" alt="${escapeHTML(product.name||"")}" loading="lazy" decoding="async" onerror="this.src='images/noimg.jpg'">
       </div>
-      <div class="product-info">
+      <div class="product-body">
         <h3>${escapeHTML(product.description||"")}</h3>
         <p class="product-name-ar">${escapeHTML(product.name||"")}</p>
         <p class="product-sku">SKU: ${escapeHTML(product.code||"")}</p>
+        <div class="qty-stepper">
+          <button type="button" data-action="dec" data-id="${escapeHTML(pid)}" aria-label="-"><i data-lucide="minus"></i></button>
+          <input class="qty-val" id="qty-${escapeHTML(pid)}" value="${qty}" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+          <button type="button" data-action="inc" data-id="${escapeHTML(pid)}" aria-label="+"><i data-lucide="plus"></i></button>
+        </div>
+        ${isInv
+          ? `<button class="btn-add inventory-btn" data-id="${escapeHTML(pid)}" type="button"><i data-lucide="clipboard-list"></i><span>${invLabel}</span></button>`
+          : `<button class="btn-add" data-id="${escapeHTML(pid)}" type="button"><i data-lucide="cart-plus"></i><span data-i18n="addToCart">${t("addToCart")}</span></button>`}
       </div>
-      <div class="product-qty-row">
-        <button type="button" data-action="dec" data-id="${escapeHTML(pid)}">−</button>
-        <input class="qty-val" id="qty-${escapeHTML(pid)}" value="${qty}" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
-        <button type="button" data-action="inc" data-id="${escapeHTML(pid)}">+</button>
-      </div>
-      ${currentCustomer && currentCustomer.accountType === "جرد مخزون"
-        ? `<button class="product-cart-btn inventory-btn" data-id="${escapeHTML(pid)}" type="button"><span class="cart-btn-icon">📋</span><span>جرد</span></button>`
-        : `<button class="product-cart-btn" data-id="${escapeHTML(pid)}" type="button"><span class="cart-btn-icon">🛒</span><span data-i18n="addToCart">${t("addToCart")}</span></button>`}
     </div>`;
   }
   productsDiv.innerHTML = html;
+  refreshIcons();
 }
 
 if(productsDiv){
@@ -351,7 +416,7 @@ if(productsDiv){
   productsDiv.addEventListener("click", event => {
     const incBtn = event.target.closest('[data-action="inc"]');
     const decBtn = event.target.closest('[data-action="dec"]');
-    const cartBtn = event.target.closest(".product-cart-btn");
+    const cartBtn = event.target.closest(".btn-add");
     if(incBtn){
       const id = incBtn.dataset.id;
       productQuantities[id] = (productQuantities[id]||1)+1;
@@ -373,13 +438,15 @@ if(productsDiv){
       if(isInventory){
         addToInventoryCart(id, qty);
         cartBtn.classList.add("is-added");
-        cartBtn.querySelector("span:last-child").textContent = "✓ جرد";
-        setTimeout(() => { cartBtn.classList.remove("is-added"); cartBtn.querySelector("span:last-child").textContent = "جرد"; }, 1200);
+        const lbl = cartBtn.querySelector("span");
+        if(lbl) lbl.textContent = "✓";
+        setTimeout(() => { cartBtn.classList.remove("is-added"); if(lbl) lbl.textContent = getLang()==="en" ? "Count" : "جرد"; }, 1200);
       }else{
         addToCart(id, qty);
         cartBtn.classList.add("is-added");
-        cartBtn.querySelector("span:last-child").textContent = t("addedToCart");
-        setTimeout(() => { cartBtn.classList.remove("is-added"); cartBtn.querySelector("span:last-child").textContent = t("addToCart"); }, 1200);
+        const lbl2 = cartBtn.querySelector("span");
+        if(lbl2) lbl2.textContent = t("addedToCart");
+        setTimeout(() => { cartBtn.classList.remove("is-added"); if(lbl2) lbl2.textContent = t("addToCart"); }, 1200);
       }
       return;
     }
@@ -401,7 +468,8 @@ function addToCart(id, quantity){
   if(cartIconLink){ cartIconLink.classList.add("bounce"); setTimeout(()=>cartIconLink.classList.remove("bounce"),400); }
 }
 function updateCartCount(){
-  if(cartCount) cartCount.textContent = getCartTotalQty();
+  const el = document.getElementById("cartCount");
+  if(el) el.textContent = getCartTotalQty();
   localStorage.setItem("cart",JSON.stringify(cart));
 }
 function addToInventoryCart(id, quantity){
@@ -416,9 +484,11 @@ function addToInventoryCart(id, quantity){
 }
 function updateInventoryCartCount(){
   const count = inventoryCart.reduce((sum,item) => sum + getItemQty(item), 0);
-  const badge = document.getElementById("inventoryCartCount");
-  if(badge) badge.textContent = count;
   localStorage.setItem("inventoryCart", JSON.stringify(inventoryCart));
+  if(currentCustomer && currentCustomer.accountType === "جرد مخزون"){
+    const el = document.getElementById("cartCount");
+    if(el) el.textContent = count;
+  }
 }
 
 /* ========================
@@ -598,8 +668,15 @@ document.getElementById("profileLogoutBtn")?.addEventListener("click", () => {
 document.getElementById("profileTogglePin")?.addEventListener("click", () => {
   const el = document.getElementById("profilePin");
   if(!el) return;
-  if(el.textContent === "****"){ el.textContent = currentCustomerPin || "N/A"; document.getElementById("profileTogglePin").textContent = t("hide"); }
-  else{ el.textContent = "****"; document.getElementById("profileTogglePin").textContent = t("show"); }
+  const btn = document.getElementById("profileTogglePin");
+  const span = btn?.querySelector("span");
+  if(el.textContent === "****"){
+    el.textContent = currentCustomerPin || "N/A";
+    if(span) span.textContent = t("hide");
+  }else{
+    el.textContent = "****";
+    if(span) span.textContent = t("show");
+  }
 });
 document.getElementById("profileChangePinBtn")?.addEventListener("click", async () => {
   profileDropdown?.classList.remove("show");
@@ -657,22 +734,23 @@ async function loadCustomerInvoices(){
     snapshot.forEach(doc => {
       const inv = doc.data();
       const div = document.createElement("div");
-      div.className = "invoice-history-card";
+      div.className = "invoice-card";
       div.innerHTML = `
-        <div class="invoice-history-top">
-          <strong class="invoice-history-no">${escapeHTML(inv.branchName||inv.invoiceNo||"")}</strong>
-          <span class="invoice-history-date">${inv.date||""}</span>
+        <div class="invoice-card__top">
+          <strong class="invoice-card__no">${escapeHTML(inv.branchName||inv.invoiceNo||"")}</strong>
+          <span class="invoice-card__date">${inv.date||""}</span>
         </div>
-        <div class="invoice-history-items">${escapeHTML((inv.items||[]).slice(0,3).map(i=>(i.description||i.name)).join("، "))}</div>
-        <div class="invoice-history-footer" style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="invoice-card__items">${escapeHTML((inv.items||[]).slice(0,3).map(i=>(i.description||i.name)).join("، "))}</div>
+        <div class="invoice-card__footer">
           <span>${t("products")}: ${inv.totalItems||0} | ${t("qty")}: ${inv.totalQty||0}</span>
-          <button class="inv-pdf-btn" type="button" style="padding:4px 10px;border:none;border-radius:6px;background:rgba(220,53,69,.1);color:#dc3545;font-size:12px;font-weight:700;cursor:pointer;">📥 PDF</button>
+          <button class="inv-pdf-btn" type="button"><i data-lucide="download"></i><span>PDF</span></button>
         </div>
       `;
       div.querySelector(".inv-pdf-btn")?.addEventListener("click", e => { e.stopPropagation(); generateInvoicePdf(inv); });
       div.addEventListener("click", () => openInvoiceDetail(inv));
       list.appendChild(div);
     });
+    refreshIcons();
   }catch(e){ list.innerHTML = '<div class="error-text">حدث خطأ</div>'; }
 }
 
@@ -681,17 +759,19 @@ function openInvoiceDetail(inv){
   const c = document.getElementById("invoiceDetailContent");
   if(!m||!c) return;
   const lang = getLang();
-  let html = `<div style="text-align:center;margin-bottom:14px;"><img src="images/logo.png" style="width:80px;height:auto;margin:0 auto 6px;" onerror="this.style.display='none'"><h2 style="color:var(--dark);font-size:20px;">${t("invoiceDetails")}</h2></div>`;
+  let html = `<div style="text-align:center;margin-bottom:14px;"><img src="images/logo.png" style="width:72px;height:auto;margin:0 auto 6px;" onerror="this.style.display='none'"><h2 style="font-size:20px;">${t("invoiceDetails")}</h2></div>`;
   html += `<div class="invoice-detail-meta"><div><span>${t("invoiceNum")}</span><strong>${escapeHTML((inv.invoiceNo||"").replace("INV-",""))}</strong></div><div><span>${t("customer")}</span><strong>${escapeHTML(inv.customerName||"")}</strong></div><div><span>${t("date")}</span><strong>${escapeHTML(inv.date||"")}</strong></div></div>`;
-  html += `<table class="invoice-detail-table"><thead><tr><th>#</th><th>${lang==="en"?"Item":"المنتج"}</th><th>KOD</th><th>${lang==="en"?"Qty":"الكمية"}</th></tr></thead><tbody>`;
-  (inv.items||[]).forEach((item,i) => { const desc=item.description||"";const ar=item.name||""; html += `<tr><td>${i+1}</td><td>${escapeHTML(desc)}${ar?`<br><span style="font-size:13px;color:#333;font-weight:600;">${escapeHTML(ar)}</span>`:""}</td><td>${escapeHTML(item.code||"")}</td><td>${getItemQty(item)}</td></tr>`; });
+  html += `<table class="inv-detail-table"><thead><tr><th>#</th><th>${lang==="en"?"Item":"المنتج"}</th><th>KOD</th><th>${lang==="en"?"Qty":"الكمية"}</th></tr></thead><tbody>`;
+  (inv.items||[]).forEach((item,i) => { const desc=item.description||"";const ar=item.name||""; html += `<tr><td>${i+1}</td><td>${escapeHTML(desc)}${ar?`<br><span style="font-size:12px;color:var(--v2-text-subtle);font-weight:600;">${escapeHTML(ar)}</span>`:""}</td><td>${escapeHTML(item.code||"")}</td><td>${getItemQty(item)}</td></tr>`; });
   html += '</tbody></table>';
   html += `<div class="invoice-detail-summary"><span>${t("products")}: ${inv.totalItems||0}</span><span>${t("qty")}: ${inv.totalQty||0}</span></div>`;
-  html += `<div style="text-align:center;margin-top:14px;"><button onclick="document.getElementById('invoiceDetailModal').classList.remove('active');document.getElementById('invoiceDetailModal').hidden=true;" style="padding:10px 24px;border:none;border-radius:10px;background:rgba(122,102,85,.1);color:var(--dark);font-weight:700;cursor:pointer;">${t("close")}</button></div>`;
+  html += `<div style="text-align:center;margin-top:14px;"><button id="invDetailCloseBtn" class="btn-subtle" type="button"><i data-lucide="x"></i><span class="btn-text">${t("close")}</span></button></div>`;
   c.innerHTML = html;
+  document.getElementById("invDetailCloseBtn")?.addEventListener("click", () => { m.classList.remove("active"); m.setAttribute("aria-hidden","true"); setTimeout(()=>{ m.hidden=true; },200); });
   m.hidden = false;
   m.setAttribute("aria-hidden","false");
   requestAnimationFrame(() => m.classList.add("active"));
+  refreshIcons();
 }
 
 document.getElementById("invoicesModalClose")?.addEventListener("click", closeInvoicesModal);
@@ -701,7 +781,28 @@ document.getElementById("invoiceDetailClose")?.addEventListener("click", () => {
 document.getElementById("invoiceDetailModal")?.addEventListener("click", e => { if(e.target.id==="invoiceDetailModal"){const m=e.target;m.classList.remove("active");m.setAttribute("aria-hidden","true");setTimeout(()=>{m.hidden=true;},200);} });
 
 document.addEventListener("keydown", e => {
-  if(e.key === "Escape"){ closeLoginModal(); closeInvoicesModal(); const m=document.getElementById("invoiceDetailModal"); if(m?.classList.contains("active")){m.classList.remove("active");m.setAttribute("aria-hidden","true");setTimeout(()=>{m.hidden=true;},200);} }
+  if(e.key === "Escape"){ closeLoginModal(); closeInvoicesModal(); closeDrawer(); const m=document.getElementById("invoiceDetailModal"); if(m?.classList.contains("active")){m.classList.remove("active");m.setAttribute("aria-hidden","true");setTimeout(()=>{m.hidden=true;},200);} }
+});
+
+/* ========================
+   DRAWER
+   ======================== */
+const appDrawer = document.getElementById("appDrawer");
+const appDrawerBackdrop = document.getElementById("appDrawerBackdrop");
+function openDrawer(){ appDrawer?.classList.add("open"); appDrawerBackdrop?.classList.add("open"); appDrawer?.setAttribute("aria-hidden","false"); }
+function closeDrawer(){ appDrawer?.classList.remove("open"); appDrawerBackdrop?.classList.remove("open"); appDrawer?.setAttribute("aria-hidden","true"); }
+document.getElementById("menuBtn")?.addEventListener("click", openDrawer);
+document.getElementById("appDrawerClose")?.addEventListener("click", closeDrawer);
+appDrawerBackdrop?.addEventListener("click", closeDrawer);
+appDrawer?.addEventListener("click", e => {
+  const toggle = e.target.closest(".drawer-toggle");
+  if(toggle){
+    const group = toggle.closest(".drawer-group");
+    group?.classList.toggle("open");
+    return;
+  }
+  const link = e.target.closest("a");
+  if(link){ setTimeout(closeDrawer, 120); }
 });
 
 /* ========================
