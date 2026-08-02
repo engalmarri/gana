@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>سلة المشتريات</title>
+  <title data-i18n="invCartTitle">المنتجات المجرودة / Inventory Count</title>
   <link rel="icon" type="image/png" href="images/icon.png">
   <link rel="stylesheet" href="css/style.css?v=20260714-2">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -16,7 +16,7 @@
   <div class="header-row">
     <div class="header-right" style="display:flex;align-items:center;gap:8px;">
       <button id="langToggle" class="lang-toggle-btn" type="button">🌐 EN</button>
-      <button id="loginBtn" class="login-btn" type="button">🔑 دخول</button>
+      <button id="loginBtn" class="login-btn" type="button" data-i18n="login">🔑 دخول</button>
       <div id="userProfile" class="user-profile" style="display:none">
         <button id="profileToggle" class="profile-toggle-btn" type="button">
           <span id="profileAvatar" class="profile-avatar"></span>
@@ -38,7 +38,7 @@
     <div class="header-left"></div>
   </div>
   <hr>
-  <h1 style="font-size:clamp(16px,3vw,22px);font-weight:900;text-align:center;color:var(--dark);margin:0 0 6px;">سلة المشتريات</h1>
+  <h1 data-i18n="invCartTitle" style="font-size:clamp(16px,3vw,22px);font-weight:900;text-align:center;color:var(--dark);margin:0 0 6px;">المنتجات المجرودة</h1>
 </header>
 
 <!-- CATEGORY FILTER BAR -->
@@ -57,23 +57,8 @@
     <button id="loginOverlayLangToggle" class="lang-toggle-btn" type="button" style="position:absolute;top:12px;left:12px;background:transparent;border:none;box-shadow:none;">🌐 EN</button>
     <img src="images/logo.png" alt="Logo" style="width:120px;height:auto;margin:0 auto 16px;" onerror="this.style.display='none'">
     <h2 data-i18n="loginFirst" style="color:var(--dark);font-size:24px;margin-bottom:8px;">سجّل دخولك أولاً</h2>
-    <p data-i18n="cartRequiredSub" style="color:var(--secondary);margin-bottom:20px;">سجّل دخولك للوصول إلى السلة</p>
+    <p data-i18n="cartRequiredSub" style="color:var(--secondary);margin-bottom:20px;">سجّل دخولك للوصول إلى المنتجات المجرودة</p>
     <button id="loginRequiredBtn" type="button" data-i18n="loginBtnOverlay" style="padding:14px 32px;border:none;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--dark),var(--accent));color:#fff;font-size:16px;font-weight:800;cursor:pointer;">🔑 تسجيل الدخول</button>
-  </div>
-</div>
-
-<!-- INVENTORY ACCOUNT BLOCK OVERLAY -->
-<div id="inventoryBlockOverlay" class="login-required-overlay" style="display:none;">
-  <div class="login-required-card" style="position:relative;">
-    <button id="invBlockLangToggle" class="lang-toggle-btn" type="button" style="position:absolute;top:12px;left:12px;background:transparent;border:none;box-shadow:none;">🌐 EN</button>
-    <div style="font-size:48px;margin-bottom:12px;">🚫</div>
-    <h2 id="invBlockTitle" data-i18n="invBlockTitle" style="color:var(--dark);font-size:22px;margin-bottom:10px;">حساب جرد مخزون</h2>
-    <p id="invBlockMsg" data-i18n="invBlockMsg" style="color:var(--secondary);margin-bottom:6px;font-size:14px;">هذا الحساب مخصص لجرد المخزون فقط.</p>
-    <p id="invBlockSub" data-i18n="invBlockSub" style="color:#B08A52;margin-bottom:22px;font-size:13px;font-weight:700;">للوصول إلى سلة المشتريات، الرجاء تسجيل الدخول بحساب فرع.</p>
-    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-      <button id="invBlockLogoutBtn" type="button" data-i18n="logout" style="padding:12px 24px;border:none;border-radius:var(--radius-sm);background:#dc3545;color:#fff;font-size:14px;font-weight:800;cursor:pointer;">🚪 تسجيل الخروج</button>
-      <button id="invBlockGoInventory" type="button" data-i18n="goInventory" style="padding:12px 24px;border:none;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--dark),var(--accent));color:#fff;font-size:14px;font-weight:800;cursor:pointer;">📋 الذهاب لجرد المخزون</button>
-    </div>
   </div>
 </div>
 
@@ -86,11 +71,17 @@
     <div id="cartItems"></div>
   </section>
   <aside class="cart-summary">
-    <h2>عدد المنتجات</h2>
+    <h2 data-i18n="itemCount">عدد المنتجات</h2>
     <span id="cartTotal">0</span>
-    <button id="createInvoice" type="button">إنشاء فاتورة</button>
-    <button id="whatsappBtn" type="button" style="margin-top:10px;background:#25d366;">💬 واتساب</button>
-    <button id="clearCartBtn" class="clear-cart-btn" type="button" style="margin-top:10px;background:rgba(220,53,69,.9);">🗑 حذف جميع المحتويات</button>
+    <div style="margin-top:12px;">
+      <label for="invBranchSelect" data-i18n="branchLabel" style="display:block;font-size:13px;font-weight:700;margin-bottom:4px;color:var(--dark);">الفرع:</label>
+      <select id="invBranchSelect" style="width:100%;padding:10px 12px;border:1.5px solid rgba(122,102,85,.2);border-radius:8px;font-size:13px;background:var(--white);outline:none;text-align:center;cursor:pointer;">
+        <option value="" data-i18n="selectBranch">-- اختر الفرع --</option>
+      </select>
+    </div>
+    <button id="createInvoice" type="button" data-i18n="printInvInvoice" style="margin-top:10px;">طباعة فاتورة الجرد</button>
+    <button id="clearCartBtn" class="clear-cart-btn" type="button" data-i18n="clearCart" style="margin-top:10px;background:rgba(220,53,69,.9);">🗑 حذف جميع المحتويات</button>
+    <a href="index.html" data-i18n="backToStore" style="display:block;margin-top:14px;padding:10px 14px;border:1.5px solid rgba(122,102,85,.2);border-radius:8px;text-align:center;color:var(--dark);font-weight:700;font-size:13px;text-decoration:none;background:var(--white);">← العودة للمتجر</a>
   </aside>
 </main>
 
@@ -101,10 +92,10 @@
 <div id="invoiceModal" class="modal-overlay" aria-hidden="true" hidden>
   <div class="modal-dialog invoice-modal-dialog">
     <button id="invoiceModalClose" class="modal-close-btn" type="button">&times;</button>
-    <h2 style="color:var(--dark);font-size:20px;margin-bottom:4px;">📄 <span data-i18n="createInvoice">إنشاء فاتورة</span></h2>
-    <p style="color:var(--secondary);font-size:13px;margin-bottom:14px;"><span data-i18n="totalQty">عدد المنتجات</span>: <strong id="invoiceModalTotal">0</strong></p>
-    <button id="createInvoiceMobile" type="button" style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--dark),var(--accent));color:#fff;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"><span data-i18n="createInvoice">إنشاء فاتورة</span></button>
-    <button id="whatsappMobile" type="button" style="width:100%;padding:14px;border:none;border-radius:10px;background:#25d366;color:#fff;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;"><span data-i18n="whatsapp">واتساب</span></button>
+    <h2 data-i18n="invInvoiceModalTitle" style="color:var(--dark);font-size:20px;margin-bottom:4px;">📄 طباعة فاتورة الجرد</h2>
+    <p style="color:var(--secondary);font-size:13px;margin-bottom:14px;"><span data-i18n="itemCount">عدد المنتجات</span>: <strong id="invoiceModalTotal">0</strong></p>
+    <select id="invBranchSelectMobile" style="width:100%;padding:10px 12px;border:1.5px solid rgba(122,102,85,.2);border-radius:8px;font-size:13px;background:var(--white);outline:none;text-align:center;cursor:pointer;margin-bottom:10px;"><option value="" data-i18n="selectBranch">-- اختر الفرع --</option></select>
+    <button id="createInvoiceMobile" type="button" data-i18n="printInvInvoice" style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--dark),var(--accent));color:#fff;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">طباعة فاتورة الجرد</button>
   </div>
 </div>
 
@@ -114,8 +105,8 @@
     <button id="loginModalClose" class="modal-close-btn" type="button">&times;</button>
     <button id="loginModalLangToggle" type="button" style="position:absolute;top:12px;left:12px;background:transparent;border:none;box-shadow:none;font-size:12px;font-weight:700;cursor:pointer;color:#7A6655;">🌐 EN</button>
     <img src="images/logo.png" class="login-logo" alt="Logo" onerror="this.style.display='none'">
-    <h2>تسجيل الدخول</h2>
-    <p class="login-subtitle">اختر نوع الحساب والاسم وأدخل كلمة المرور</p>
+    <h2 data-i18n="loginTitle">تسجيل الدخول</h2>
+    <p class="login-subtitle" data-i18n="loginSubtitle">اختر نوع الحساب والاسم وأدخل كلمة المرور</p>
     <select id="loginAccountType" class="login-select">
       <option value="">-- نوع الحساب --</option>
       <option value="جرد مخزون">جرد مخزون</option>
@@ -132,10 +123,10 @@
 <div id="invoicesModal" class="modal-overlay" aria-hidden="true" hidden>
   <div class="modal-dialog invoices-dialog">
     <button id="invoicesModalClose" class="modal-close-btn" type="button">&times;</button>
-    <h2 style="color:var(--dark);font-size:22px;margin-bottom:4px;">📄 فواتيري</h2>
+    <h2 data-i18n="myInvoicesTitle" style="color:var(--dark);font-size:22px;margin-bottom:4px;">📄 فواتيري</h2>
     <p class="invoices-subtitle" id="invoicesSubtitle" style="color:var(--secondary);font-size:13px;margin-bottom:14px;"></p>
     <div id="invoicesList" class="invoices-list"></div>
-    <button id="invoicesCloseBtn" type="button" class="invoices-close-btn" style="width:100%;margin-top:12px;padding:12px;border:none;border-radius:var(--radius-sm);background:rgba(122,102,85,.1);color:var(--dark);font-size:14px;font-weight:700;cursor:pointer;">إغلاق</button>
+    <button id="invoicesCloseBtn" type="button" data-i18n="close" class="invoices-close-btn" style="width:100%;margin-top:12px;padding:12px;border:none;border-radius:var(--radius-sm);background:rgba(122,102,85,.1);color:var(--dark);font-size:14px;font-weight:700;cursor:pointer;">إغلاق</button>
   </div>
 </div>
 
@@ -150,12 +141,12 @@
 <!-- CLEAR CART CONFIRM MODAL -->
 <div id="clearCartConfirmModal" class="clear-cart-overlay" aria-hidden="true" role="dialog" aria-modal="true">
   <div class="clear-cart-dialog">
-    <h3>تأكيد حذف السلة</h3>
-    <p>سيتم حذف جميع المنتجات. للتأكيد اكتب <strong>Yes</strong></p>
+    <h3 data-i18n="confirmDeleteCart">تأكيد حذف السلة</h3>
+    <p data-i18n="confirmDeleteCartMsg">سيتم حذف جميع المنتجات. للتأكيد اكتب <strong>Yes</strong></p>
     <input type="text" id="confirmClearInput" placeholder="Yes" autocomplete="off" spellcheck="false">
     <div class="clear-cart-actions">
-      <button id="cancelClearCart" class="cancel-clear-cart" type="button">إلغاء</button>
-      <button id="confirmClearCart" class="confirm-clear-cart" type="button" disabled>حذف</button>
+      <button id="cancelClearCart" class="cancel-clear-cart" type="button" data-i18n="cancel">إلغاء</button>
+      <button id="confirmClearCart" class="confirm-clear-cart" type="button" disabled data-i18n="delete">حذف</button>
     </div>
   </div>
 </div>
@@ -164,47 +155,34 @@
 <div id="invoiceTemplate" aria-hidden="true">
   <div class="invoice-box">
     <div style="display:flex;align-items:center;justify-content:center;margin-bottom:8px;position:relative;">
-      <div class="inv-branch-label" style="position:absolute;left:0;top:0;font-size:11px;font-weight:700;color:#000;text-align:left;direction:ltr;">Receiving Branch: <span class="inv-branch-line" id="invRecvBranch" style="display:inline-block;min-width:120px;color:#000;font-weight:400;"></span></div>
+      <div class="inv-branch-label" style="position:absolute;left:0;top:0;font-size:11px;font-weight:700;color:#000;text-align:left;direction:ltr;">Branch: <span class="inv-branch-line" id="invRecvBranch" style="display:inline-block;min-width:120px;color:#000;font-weight:400;"></span></div>
       <div class="invoice-brand" style="text-align:center;">
         <img src="images/logo.png" class="invoice-logo" alt="Logo" style="display:block;width:80px;height:auto;margin:0 auto 4px;">
-        <div class="invoice-title-main" style="font-size:18px;font-weight:800;color:#111;text-align:center;"><span id="invoiceTitleMain">Materials Delivery Form</span><span id="invoiceTitleStock" style="display:none;">Stock Inventory</span></div>
+        <div class="invoice-title-main" style="font-size:18px;font-weight:800;color:#111;text-align:center;">Inventory Count Form</div>
       </div>
     </div>
     <div class="invoice-info-row">
-      <span>Invoice No: <strong id="invoiceNo">0001</strong></span>
+      <span>Form No: <strong id="invoiceNo">0001</strong></span>
       <span>Customer: <strong id="invoiceCustomer">Direct Customer</strong></span>
       <span>Date: <strong id="invoiceDate"></strong></span>
     </div>
     <table id="invoiceTable" class="invoice-table">
       <colgroup><col class="invoice-check-col"><col><col class="invoice-check-col"><col><col class="invoice-check-col"><col></colgroup>
-      <thead><tr><th>Stock</th><th>Item</th><th>Stock</th><th>Item</th><th>Stock</th><th>Item</th></tr></thead>
+      <thead><tr><th>✔</th><th>Item</th><th>✔</th><th>Item</th><th>✔</th><th>Item</th></tr></thead>
       <tbody id="invoiceProducts"></tbody>
     </table>
-    <div id="nonCartSection" style="display:none;margin-top:8px;">
-      <div id="nonCartHeader" style="font-size:14px;font-weight:900;text-align:center;background:#d9d9d9;border:1px solid #222;padding:6px 8px;margin-bottom:4px;">Remaining Inventory</div>
-      <table id="nonCartTable" class="invoice-table" style="direction:ltr;">
-        <colgroup><col><col style="width:40px;"><col><col style="width:40px;"><col><col style="width:40px;"></colgroup>
-        <thead><tr><th>Item</th><th>Stock</th><th>Item</th><th>Stock</th><th>Item</th><th>Stock</th></tr></thead>
-        <tbody id="nonCartProducts"></tbody>
-      </table>
-      <div id="nonCartSupervisor" style="display:none;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:18px;padding-top:10px;border-top:1px solid #222;direction:ltr;text-align:center;">
-        <div class="inv-delivery-col" style="font-size:11px;color:#333;"><div class="inv-delivery-title" style="font-weight:800;font-size:12px;color:#111;margin-bottom:8px;">Branch Responsible:</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Name: ____________________________________________</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Date: ____________________________________________</div></div>
-        <div class="inv-delivery-col" style="font-size:11px;color:#333;"><div class="inv-delivery-title" style="font-weight:800;font-size:12px;color:#111;margin-bottom:8px;">Inventory Supervisor:</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Name: ____________________________________________</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Date: ____________________________________________</div></div>
-      </div>
-    </div>
     <div class="invoice-summary-row" style="display:grid;grid-template-columns:1fr 1fr;margin-top:8px;border:1px solid #222;">
       <div class="invoice-summary-item" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 10px;font-size:12px;font-weight:800;border-left:1px solid #222;"><strong id="invoiceTotal" style="font-size:15px;">0</strong><span>Total Items</span></div>
       <div class="invoice-summary-item" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 10px;font-size:12px;font-weight:800;"><strong id="invoiceQty" style="font-size:15px;">0</strong><span>Total Qty</span></div>
     </div>
-    <div class="invoice-delivery-info" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:18px;padding-top:10px;border-top:1px solid #222;direction:ltr;text-align:left;">
-      <div class="inv-delivery-col" style="font-size:11px;color:#333;"><div class="inv-delivery-title" style="font-weight:800;font-size:12px;color:#111;margin-bottom:8px;">Sent by:</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Name: ____________________________________________</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Date: ____________________________________________</div></div>
-      <div class="inv-delivery-col" style="font-size:11px;color:#333;"><div class="inv-delivery-title" style="font-weight:800;font-size:12px;color:#111;margin-bottom:8px;">Transferred by:</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Name: ____________________________________________</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Date: ____________________________________________</div></div>
-      <div class="inv-delivery-col" style="font-size:11px;color:#333;"><div class="inv-delivery-title" style="font-weight:800;font-size:12px;color:#111;margin-bottom:8px;">Received by:</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Name: ____________________________________________</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Date: ____________________________________________</div></div>
+    <div class="invoice-delivery-info" style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:18px;padding-top:10px;border-top:1px solid #222;direction:ltr;text-align:left;">
+      <div class="inv-delivery-col" style="font-size:11px;color:#333;"><div class="inv-delivery-title" style="font-weight:800;font-size:12px;color:#111;margin-bottom:8px;">Branch Responsible:</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Name: ____________________________________________</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Date: ____________________________________________</div></div>
+      <div class="inv-delivery-col" style="font-size:11px;color:#333;"><div class="inv-delivery-title" style="font-weight:800;font-size:12px;color:#111;margin-bottom:8px;">Inventory Supervisor:</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Name: ____________________________________________</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Date: ____________________________________________</div></div>
     </div>
   </div>
 </div>
 
-<script type="module" src="js/cart.js?v=20260714-2"></script>
+<script type="module" src="js/inventory-cart.js?v=20260714-2"></script>
 
 <button class="dash-menu-btn" id="dashMenuBtn" aria-label="القائمة"><span></span><span></span><span></span></button>
 <div class="dash-menu-dropdown" id="dashMenuDropdown">
@@ -245,7 +223,7 @@ document.addEventListener("click",function(e){
 });
 (function(){
   var LANG_KEY="sallah_lang";
-  function getLang(){return localStorage.getItem(LANG_KEY)||"ar";}
+  function getLang(){return localStorage.getItem(LANG_KEY)||"en";}
   var menuT={ar:{menuStore:"المتجر",menuCart:"السلة",menuInvoices:"الفواتير",menuAdmin:"الإدارة",menuCartPurchase:"سلة المشتريات",menuCartInventory:"سلة الجرد",menuInvoicesBranch:"فواتير الفروع",menuInvoicesInventory:"فواتير الجرد",menuAdminGeneral:"إدارة عامة",menuAdminManagers:"إدارة المدراء",menuAdminStats:"إحصائيات الطلبات"},en:{menuStore:"Store",menuCart:"Cart",menuInvoices:"Invoices",menuAdmin:"Admin",menuCartPurchase:"Purchase Cart",menuCartInventory:"Inventory Cart",menuInvoicesBranch:"Branch Invoices",menuInvoicesInventory:"Inventory Invoices",menuAdminGeneral:"General Admin",menuAdminManagers:"Admin Management",menuAdminStats:"Order Statistics"}};
   function applyMenu(){
     var lang=getLang();var tr=menuT[lang]||menuT.ar;

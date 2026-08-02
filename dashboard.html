@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة التحكم / Dashboard</title>
+  <link rel="icon" type="image/png" href="images/icon.png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #705f34 0%, #325247 50%, #414935 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, 'Segoe UI', Tahoma, sans-serif;
+      padding: 20px;
+      direction: rtl;
+    }
+    .dashboard {
+      background: #fff;
+      border-radius: 24px;
+      padding: 40px 36px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      text-align: center;
+      position: relative;
+    }
+    .dashboard .logo {
+      width: 1.93in;
+      height: 1.34in;
+      margin-bottom: 14px;
+    }
+    .dashboard h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #111;
+      margin-bottom: 4px;
+    }
+    .dashboard .subtitle {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 28px;
+    }
+    .dashboard .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .dashboard .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 20px;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all .2s;
+      color: #fff;
+    }
+    .btn-store {
+      background: #C9B99A;
+      box-shadow: 0 4px 14px rgba(201,185,154,.3);
+    }
+    .btn-store:hover { background: #B8A88A; transform: translateY(-2px); }
+    .btn-admin {
+      background: #1a73e8;
+      box-shadow: 0 4px 14px rgba(26,115,232,.3);
+    }
+    .btn-admin:hover { background: #1557b0; transform: translateY(-2px); }
+    .btn-invoices {
+      background: #f9a825;
+      box-shadow: 0 4px 14px rgba(249,168,37,.3);
+    }
+    .btn-invoices:hover { background: #e69500; transform: translateY(-2px); }
+    .btn .icon { font-size: 22px; }
+    .lang-toggle-btn {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #555;
+      transition: all .2s;
+    }
+    .lang-toggle-btn:hover { color: var(--accent); }
+    @media (max-width:480px){
+      .dashboard { padding: 28px 20px; }
+      .dashboard h1 { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <button id="dashLangToggle" class="lang-toggle-btn" type="button">🌐 EN</button>
+    <img src="images/logo.png" class="logo" alt="Logo" onerror="this.style.display='none'">
+    <p class="subtitle" id="dashSub"></p>
+    <div class="btn-group">
+      <a href="index.html" class="btn btn-store" id="dashStoreBtn"><span class="icon">🛒</span> <span id="dashStoreText"></span></a>
+      <a href="admin.html" class="btn btn-admin" id="dashAdminBtn"><span class="icon">⚙️</span> <span id="dashAdminText"></span></a>
+      <a href="invoices-view.html" class="btn btn-invoices" id="dashInvoicesBtn"><span class="icon">📄</span> <span id="dashInvoicesText"></span></a>
+      <a href="admins.html" class="btn" style="background:#8B7355;box-shadow:0 4px 14px rgba(139,115,85,.3);" id="dashAdminsBtn"><span class="icon">🔐</span> <span id="dashAdminsText">Admin Management</span></a>
+      <a href="statistics.html" class="btn" style="background:#6c757d;box-shadow:0 4px 14px rgba(108,117,125,.3);" id="dashStatsBtn"><span class="icon">📊</span> <span id="dashStatsText">Order Statistics</span></a>
+    </div>
+  </div>
+  <script>
+    const LANG_KEY = "sallah_lang";
+    function getLang(){ return localStorage.getItem(LANG_KEY) || "en"; }
+    function setLang(l){ localStorage.setItem(LANG_KEY, l); }
+    const T_DASH = {
+      ar: { title:"لوحة التحكم", sub:"اختر القسم", store:" المتجر", admin:" لوحة الإدارة", invoices:" عرض الفواتير", stats:" إحصائيات الطلبات", toggle:"🌐 EN" },
+      en: { title:"Dashboard", sub:"Choose a section", store:" Store", admin:" Admin Panel", invoices:" Invoices View", stats:" Order Statistics", toggle:"🌐 عربي" }
+    };
+    function applyDashLang(){
+      const lang = getLang();
+      const tr = T_DASH[lang] || T_DASH.ar;
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === "en" ? "ltr" : "rtl";
+      document.getElementById("dashSub").textContent = tr.sub;
+      document.getElementById("dashStoreText").textContent = tr.store;
+      document.getElementById("dashAdminText").textContent = tr.admin;
+      document.getElementById("dashInvoicesText").textContent = tr.invoices;
+      document.getElementById("dashStatsText").textContent = tr.stats;
+      document.getElementById("dashLangToggle").textContent = tr.toggle;
+    }
+    applyDashLang();
+    document.getElementById("dashLangToggle").addEventListener("click", function(){
+      setLang(getLang() === "ar" ? "en" : "ar");
+      applyDashLang();
+    });
+  </script>
+</body>
+</html>

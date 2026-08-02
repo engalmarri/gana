@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إحصائيات الطلبات</title>
+  <link rel="icon" type="image/png" href="images/icon.png">
+  <link rel="stylesheet" href="css/style.css?v=20260714-2">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="admin-locked">
+
+<!-- ADMIN LOGIN -->
+<section id="adminLoginScreen" class="admin-login-screen">
+  <form id="adminLoginForm" class="admin-login-card" autocomplete="off">
+    <img src="images/logo.png" alt="Logo" onerror="this.style.display='none'">
+    <h1>لوحة الإدارة</h1>
+    <p>الرجاء إدخال اسم المستخدم وكلمة المرور</p>
+    <input type="text" id="adminUsername" placeholder="اسم المستخدم" autocomplete="username" spellcheck="false">
+    <input type="password" id="adminPassword" placeholder="كلمة السر" autocomplete="current-password">
+    <button type="submit">دخول</button>
+    <div id="adminLoginError" class="admin-login-error"></div>
+  </form>
+  <button id="adminLoginLangToggle" class="lang-toggle-btn" type="button" style="position:absolute;top:16px;left:16px;background:transparent;border:none;box-shadow:none;">🌐 EN</button>
+</section>
+
+<!-- STATS PANEL -->
+<div class="admin-box" id="adminPanel" hidden>
+  <div style="text-align:center;margin-bottom:16px;">
+    <a href="dashboard.html"><img src="images/logo.png" class="logo" alt="Logo" style="width:120px;height:auto;"></a>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:12px;">
+    <button id="statsPrintBtn" type="button" style="padding:6px 14px;border:1.5px solid var(--accent);border-radius:8px;background:var(--white);color:var(--accent);font-weight:700;cursor:pointer;font-size:12px;">🖨 طباعة PDF</button>
+    <button id="statsLangToggle" class="lang-toggle-btn" type="button" style="background:transparent;border:none;box-shadow:none;">🌐 EN</button>
+  </div>
+
+  <div class="stats-page">
+    <div class="stats-header">
+      <div class="stats-title" id="statsTitle">📊 إحصائيات الطلبات</div>
+    </div>
+
+    <div class="stats-chips" id="periodChips">
+      <div class="stats-chip active" data-period="week" data-i18n="statsWeek">هذا الأسبوع</div>
+      <div class="stats-chip" data-period="month" data-i18n="statsMonth">هذا الشهر</div>
+      <div class="stats-chip" data-period="3months" data-i18n="stats3Months">آخر 3 أشهر</div>
+      <div class="stats-chip" data-period="year" data-i18n="statsYear">هذه السنة</div>
+      <div class="stats-chip" data-period="custom" data-i18n="statsCustom">مخصص</div>
+    </div>
+
+    <div class="stats-range-row" id="customRange">
+      <label data-i18n="statsFrom">من</label>
+      <input type="date" id="dateFrom">
+      <label data-i18n="statsTo">إلى</label>
+      <input type="date" id="dateTo">
+      <button type="button" id="applyRange" data-i18n="statsApply">تطبيق</button>
+    </div>
+
+    <div class="stats-chips" id="branchChips"></div>
+
+    <div class="stats-cards">
+      <div class="stats-card">
+        <div class="stats-card-value" id="cardInvoices">0</div>
+        <div class="stats-card-label" id="cardInvoicesLabel">إجمالي الفواتير</div>
+      </div>
+      <div class="stats-card">
+        <div class="stats-card-value" id="cardQty">0</div>
+        <div class="stats-card-label" id="cardQtyLabel">إجمالي الكمية</div>
+      </div>
+      <div class="stats-card">
+        <div class="stats-card-value" id="cardProducts">0</div>
+        <div class="stats-card-label" id="cardProductsLabel">عدد المنتجات</div>
+      </div>
+    </div>
+
+    <div class="stats-table-wrap">
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th id="thProduct">المنتج</th>
+            <th id="thArabic">الاسم بالعربي</th>
+            <th id="thCategory">القسم</th>
+            <th id="thQty">إجمالي الكمية</th>
+            <th id="thTimes">عدد مرات الطلب</th>
+          </tr>
+        </thead>
+        <tbody id="statsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- STATS PRINT TEMPLATE (hidden, for PDF) -->
+<div id="statsPrintTemplate" aria-hidden="true" style="position:fixed;left:-99999px;top:0;width:1120px;background:#fff;padding:16px;direction:rtl;font-family:'Segoe UI',Arial,Tahoma,sans-serif;">
+  <div class="invoice-box" style="width:100%;background:#fff;color:#111;direction:rtl;">
+    <div style="text-align:center;margin-bottom:10px;">
+      <img src="images/logo.png" alt="Logo" style="display:block;width:80px;height:auto;margin:0 auto 6px;">
+      <div style="font-size:20px;font-weight:800;color:#111;" id="printTitle">إحصائيات الطلبات</div>
+      <div style="font-size:12px;color:#555;margin-top:4px;" id="printPeriod"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
+      <div style="border:1.5px solid #222;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:800;" id="printCardInvoices">0</div><div style="font-size:11px;color:#555;" id="printCardInvoicesLabel">إجمالي الفواتير</div></div>
+      <div style="border:1.5px solid #222;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:800;" id="printCardQty">0</div><div style="font-size:11px;color:#555;" id="printCardQtyLabel">إجمالي الكمية</div></div>
+      <div style="border:1.5px solid #222;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:800;" id="printCardProducts">0</div><div style="font-size:11px;color:#555;" id="printCardProductsLabel">عدد المنتجات</div></div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;" id="printTable">
+      <thead>
+        <tr>
+          <th style="background:#e9e9e9;color:#111;border:1px solid #222;padding:6px;font-weight:800;text-align:center;">#</th>
+          <th style="background:#e9e9e9;color:#111;border:1px solid #222;padding:6px;font-weight:800;text-align:center;" id="printThImg">الصورة</th>
+          <th style="background:#e9e9e9;color:#111;border:1px solid #222;padding:6px;font-weight:800;text-align:center;" id="printThProduct">المنتج</th>
+          <th style="background:#e9e9e9;color:#111;border:1px solid #222;padding:6px;font-weight:800;text-align:center;" id="printThArabic">الاسم بالعربي</th>
+          <th style="background:#e9e9e9;color:#111;border:1px solid #222;padding:6px;font-weight:800;text-align:center;" id="printThCategory">القسم</th>
+          <th style="background:#e9e9e9;color:#111;border:1px solid #222;padding:6px;font-weight:800;text-align:center;" id="printThQty">إجمالي الكمية</th>
+          <th style="background:#e9e9e9;color:#111;border:1px solid #222;padding:6px;font-weight:800;text-align:center;" id="printThTimes">عدد مرات الطلب</th>
+        </tr>
+      </thead>
+      <tbody id="printBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const AUTH_KEY = "sallah_admin_unlocked";
+  const VERIFIED_KEY = "sallah_admin_verified";
+  const ADMIN_SESSION_KEY = "sallah_admin_session";
+  const LOCAL_ADMIN_KEY = "sallah_local_admin";
+
+  const loginScreen = document.getElementById("adminLoginScreen");
+  const loginForm = document.getElementById("adminLoginForm");
+  const usernameInput = document.getElementById("adminUsername");
+  const passwordInput = document.getElementById("adminPassword");
+  const loginError = document.getElementById("adminLoginError");
+  const adminPanel = document.getElementById("adminPanel");
+
+  const adminLang = {
+    ar: { title:"لوحة الإدارة", subtitle:"الرجاء إدخال اسم المستخدم وكلمة المرور", user:"اسم المستخدم", pass:"كلمة السر", btn:"دخول", err1:"الرجاء إدخال اسم المستخدم وكلمة المرور", checking:"جاري التحقق...", toggle:"🌐 EN" },
+    en: { title:"Admin Panel", subtitle:"Enter username and password", user:"Username", pass:"Password", btn:"Login", err1:"Enter username and password", checking:"Checking...", toggle:"🌐 عربي" }
+  };
+  function applyLoginLang(){
+    const lang = localStorage.getItem("sallah_lang") || "ar";
+    const tr = adminLang[lang] || adminLang.ar;
+    loginScreen.querySelector("h1").textContent = tr.title;
+    loginScreen.querySelector("p").textContent = tr.subtitle;
+    usernameInput.placeholder = tr.user;
+    passwordInput.placeholder = tr.pass;
+    loginForm.querySelector("button[type='submit']").textContent = tr.btn;
+    document.getElementById("adminLoginLangToggle").textContent = tr.toggle;
+  }
+  applyLoginLang();
+  document.getElementById("adminLoginLangToggle")?.addEventListener("click", function(){
+    const lang = localStorage.getItem("sallah_lang") || "ar";
+    localStorage.setItem("sallah_lang", lang === "ar" ? "en" : "ar");
+    applyLoginLang();
+  });
+
+  function showStatsPanel(){
+    document.body.classList.remove("admin-locked");
+    loginScreen.hidden = true;
+    adminPanel.hidden = false;
+    if(document.querySelector("script[data-stats-module='true']")) return;
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src = "js/statistics.js?v=20260714-2";
+    script.dataset.statsModule = "true";
+    document.body.appendChild(script);
+  }
+
+  loginForm.addEventListener("submit", function(e){
+    e.preventDefault();
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
+    const lang = localStorage.getItem("sallah_lang") || "ar";
+    const tr = adminLang[lang] || adminLang.ar;
+    if(!username || !password){ loginError.textContent = tr.err1; return; }
+    loginError.textContent = tr.checking;
+    try{
+      const d = localStorage.getItem(LOCAL_ADMIN_KEY);
+      if(d){
+        const a = JSON.parse(d);
+        if(a.username === username && a.password === password){
+          sessionStorage.setItem(VERIFIED_KEY, "true");
+          sessionStorage.setItem(ADMIN_SESSION_KEY, username);
+          showStatsPanel();
+          return;
+        }
+      }
+    }catch(err){}
+    sessionStorage.setItem("admin_login_attempt", JSON.stringify({username, password}));
+    sessionStorage.setItem(AUTH_KEY, "true");
+    showStatsPanel();
+  });
+
+  if(sessionStorage.getItem(VERIFIED_KEY) === "true"){
+    showStatsPanel();
+  } else {
+    sessionStorage.removeItem(AUTH_KEY);
+    setTimeout(()=> passwordInput.focus(), 100);
+  }
+</script>
+
+<button class="dash-menu-btn" id="dashMenuBtn" aria-label="القائمة"><span></span><span></span><span></span></button>
+<div class="dash-menu-dropdown" id="dashMenuDropdown">
+  <a href="index.html" data-i18n-menu="menuStore"><span class="dash-icon">🛒</span> المتجر</a>
+  <div class="dash-group">
+    <div class="dash-toggle" data-i18n-menu="menuCart"><span class="dash-icon">📋</span> السلة <span class="dash-arrow">▶</span></div>
+    <div class="dash-submenu">
+      <a href="cart.html" data-i18n-menu="menuCartPurchase"><span class="dash-icon">🛍️</span> سلة المشتريات</a>
+      <a href="inventory-cart.html" data-i18n-menu="menuCartInventory"><span class="dash-icon">📦</span> سلة الجرد</a>
+    </div>
+  </div>
+  <div class="dash-group">
+    <div class="dash-toggle" data-i18n-menu="menuInvoices"><span class="dash-icon">📄</span> الفواتير <span class="dash-arrow">▶</span></div>
+    <div class="dash-submenu">
+      <a href="invoices-view.html" data-i18n-menu="menuInvoicesBranch"><span class="dash-icon">🏪</span> فواتير الفروع</a>
+      <a href="inventory-view.html" data-i18n-menu="menuInvoicesInventory"><span class="dash-icon">📦</span> فواتير الجرد</a>
+    </div>
+  </div>
+  <div class="dash-group">
+    <div class="dash-toggle" data-i18n-menu="menuAdmin"><span class="dash-icon">⚙️</span> الإدارة <span class="dash-arrow">▶</span></div>
+    <div class="dash-submenu">
+      <a href="admin.html" data-i18n-menu="menuAdminGeneral"><span class="dash-icon">🛠️</span> إدارة عامة</a>
+      <a href="admins.html" data-i18n-menu="menuAdminManagers"><span class="dash-icon">🔐</span> إدارة المدراء</a>
+      <a href="statistics.html" data-i18n-menu="menuAdminStats"><span class="dash-icon">📊</span> إحصائيات الطلبات</a>
+    </div>
+  </div>
+</div>
+<script>
+document.addEventListener("click",function(e){
+  var btn=document.getElementById("dashMenuBtn"),menu=document.getElementById("dashMenuDropdown");
+  if(!btn||!menu)return;
+  if(btn.contains(e.target)){btn.classList.toggle("active");menu.classList.toggle("show");}
+  else if(menu.contains(e.target)){
+    var toggle=e.target.closest(".dash-toggle");
+    if(toggle){e.stopPropagation();var sub=toggle.nextElementSibling;if(sub&&sub.classList.contains("dash-submenu")){sub.classList.toggle("open");toggle.classList.toggle("open");}}
+  }
+  else{btn.classList.remove("active");menu.classList.remove("show");}
+});
+(function(){
+  var LANG_KEY="sallah_lang";
+  function getLang(){return localStorage.getItem(LANG_KEY)||"ar";}
+  var menuT={ar:{menuStore:"المتجر",menuCart:"السلة",menuInvoices:"الفواتير",menuAdmin:"الإدارة",menuCartPurchase:"سلة المشتريات",menuCartInventory:"سلة الجرد",menuInvoicesBranch:"فواتير الفروع",menuInvoicesInventory:"فواتير الجرد",menuAdminGeneral:"إدارة عامة",menuAdminManagers:"إدارة المدراء",menuAdminStats:"إحصائيات الطلبات"},en:{menuStore:"Store",menuCart:"Cart",menuInvoices:"Invoices",menuAdmin:"Admin",menuCartPurchase:"Purchase Cart",menuCartInventory:"Inventory Cart",menuInvoicesBranch:"Branch Invoices",menuInvoicesInventory:"Inventory Invoices",menuAdminGeneral:"General Admin",menuAdminManagers:"Admin Management",menuAdminStats:"Order Statistics"}};
+  function applyMenu(){
+    var lang=getLang();var tr=menuT[lang]||menuT.ar;
+    document.querySelectorAll("#dashMenuDropdown a, #dashMenuDropdown .dash-toggle").forEach(function(el){
+      var key=el.getAttribute("data-i18n-menu");if(!key||!tr[key])return;
+      var icon=el.querySelector(".dash-icon");var iconHtml=icon?icon.outerHTML:"";
+      var arrow=el.querySelector(".dash-arrow");var arrowHtml=arrow?arrow.outerHTML:"";
+      el.innerHTML=iconHtml+" "+tr[key]+" "+arrowHtml;
+    });
+  }
+  applyMenu();
+  var origSetLang=window.setLang;
+  document.addEventListener("langChanged",applyMenu);
+  setInterval(applyMenu,1500);
+})();
+</script>
+
+</body>
+</html>

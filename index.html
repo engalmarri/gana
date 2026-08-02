@@ -1,135 +1,220 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
-
 <meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
-
-<title>
-تموينات سنابل الكوثر
-</title>
-
-<link rel="stylesheet"
-href="css/style.css">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سـمـسـم</title>
+  <link rel="icon" type="image/png" href="images/icon.png">
+  <link rel="stylesheet" href="css/style.css?v=20260714-2">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-
 </head>
-
 <body>
 
-<!-- CART ICON -->
-
-<a
-href="cart.html"
-class="cart-icon">
-
-🛒
-
-<span id="cartCount">
-0
-</span>
-
+<a href="cart.html" class="cart-icon" id="cartIconLink" style="display:none;">
+  🛒
+  <span id="cartCount">0</span>
 </a>
 
-<!-- HEADER -->
-
-<header>
-
-<img
-src="images/logo.png"
-class="logo"
-alt="Logo">
-
-<hr>
-
-<input
-type="text"
-id="search"
-placeholder="Search">
-
+<header class="store-header">
+  <div class="header-row">
+    <div class="header-right" style="display:flex;align-items:center;gap:8px;">
+      <button id="langToggle" class="lang-toggle-btn" type="button">🌐 EN</button>
+      <button id="loginBtn" class="login-btn" type="button">🔑 دخول</button>
+      <div id="userProfile" class="user-profile" style="display:none">
+        <button id="profileToggle" class="profile-toggle-btn" type="button">
+          <span class="profile-avatar" id="profileAvatar"></span>
+          <span id="loggedInUser"></span> ▾
+        </button>
+        <div id="profileDropdown" class="profile-dropdown">
+          <div class="profile-dropdown-item"><strong>الاسم:</strong> <span id="profileName"></span></div>
+          <div class="profile-dropdown-item"><strong>النوع:</strong> <span id="profileType"></span></div>
+          <div class="profile-dropdown-item"><strong>PIN:</strong> <span id="profilePin">****</span> <button id="profileTogglePin" type="button">إظهار</button></div>
+          <div class="profile-dropdown-item"><button id="profileChangePinBtn" type="button">🔑 تغيير كلمة المرور</button></div>
+          <div class="profile-dropdown-item"><button id="profileInvoicesBtn" type="button">📄 فواتيري</button></div>
+          <div class="profile-dropdown-item"><button id="profileLogoutBtn" type="button" style="background:rgba(220,53,69,.1);color:#dc3545;">🚪 تسجيل الخروج</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="header-center">
+      <img src="images/logo.png" class="logo" alt="سمسم">
+    </div>
+    <div class="header-left"></div>
+  </div>
+  <hr>
+  <input type="text" id="search" placeholder="🔍 ابحث عن منتج..." disabled>
 </header>
 
+<!-- LOGIN REQUIRED OVERLAY -->
+<div id="loginRequiredOverlay" class="login-required-overlay">
+  <div class="login-required-card" style="position:relative;">
+    <button id="loginOverlayLangToggle" class="lang-toggle-btn" type="button" style="position:absolute;top:12px;left:12px;background:transparent;border:none;box-shadow:none;">🌐 EN</button>
+    <img src="images/logo.png" alt="Logo" style="width:120px;height:auto;margin:0 auto 16px;" onerror="this.style.display='none'">
+    <h2 style="color:var(--dark);font-size:24px;margin-bottom:8px;">مرحباً بك في سمسم</h2>
+    <p style="color:var(--secondary);margin-bottom:20px;">سجّل دخولك للوصول إلى المنتجات</p>
+    <button id="loginRequiredBtn" type="button" style="padding:14px 32px;border:none;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--dark),var(--accent));color:#fff;font-size:16px;font-weight:800;cursor:pointer;">🔑 تسجيل الدخول</button>
+  </div>
+</div>
+
 <!-- CATEGORIES -->
-
-<div class="categories">
-
-<button
-class="cat-btn"
-data-cat="all">
-
-All Products
-<br>
-جميع المنتجات
-
-</button>
-
-<button
-class="cat-btn"
-data-cat="مواد غذائية">
-
-Foodstuffs
-<br>
-مواد غذائية
-
-</button>
-
-<button
-class="cat-btn"
-data-cat="خضار">
-
-Vegetables
-<br>
-خضار
-
-</button>
-
-<button
-class="cat-btn"
-data-cat="منظفات">
-
-Detergents
-<br>
-منظفات
-
-</button>
-
-<button
-class="cat-btn"
-data-cat="مستلزمات">
-
-Supplies
-<br>
-مستلزمات
-
-</button>
-
+<div class="categories" id="categoriesBar" style="display:none;">
+  <div class="cat-card" data-cat="قسم المعمل">
+    <span class="cat-badge" data-cat-count="قسم المعمل" style="display:none;">0</span>
+    <span class="cat-label" data-i18n-cat="قسم المعمل">قسم المعمل</span>
+  </div>
+  <div class="cat-card" data-cat="قسم السوبرماركت">
+    <span class="cat-badge" data-cat-count="قسم السوبرماركت" style="display:none;">0</span>
+    <span class="cat-label" data-i18n-cat="قسم السوبرماركت">قسم السوبرماركت</span>
+  </div>
+  <div class="cat-card" data-cat="قسم محلات الجملة">
+    <span class="cat-badge" data-cat-count="قسم محلات الجملة" style="display:none;">0</span>
+    <span class="cat-label" data-i18n-cat="قسم محلات الجملة">محلات الجملة</span>
+  </div>
+  <div class="cat-card" data-cat="قسم المستودع">
+    <span class="cat-badge" data-cat-count="قسم المستودع" style="display:none;">0</span>
+    <span class="cat-label" data-i18n-cat="قسم المستودع">قسم المستودع</span>
+  </div>
+  <div class="cat-card" data-cat="احتياجات المعمل">
+    <span class="cat-badge" data-cat-count="احتياجات المعمل" style="display:none;">0</span>
+    <span class="cat-label" data-i18n-cat="احتياجات المعمل">احتياجات المعمل</span>
+  </div>
 </div>
 
-<!-- PRODUCTS -->
-
-<main>
-
-<div class="products-section">
-
-<div id="products">
-
-</div>
-
-</div>
-
+<!-- PRODUCTS (hidden until login) -->
+<main style="display:none;" id="productsMain">
+  <div class="products-section">
+    <div id="products"></div>
+  </div>
 </main>
 
-<script
-type="module"
-src="js/app.js">
+<!-- LOGIN MODAL -->
+<div id="loginModal" class="modal-overlay" aria-hidden="true" hidden>
+  <div class="modal-dialog login-dialog">
+    <button id="loginModalClose" class="modal-close-btn" type="button">&times;</button>
+    <img src="images/logo.png" class="login-logo" alt="Logo" onerror="this.style.display='none'">
+    <h2>تسجيل الدخول</h2>
+    <p class="login-subtitle">اختر نوع الحساب والاسم وأدخل كلمة المرور</p>
+    <select id="loginAccountType" class="login-select">
+      <option value="">-- نوع الحساب --</option>
+      <option value="جرد مخزون">جرد مخزون</option>
+      <option value="حساب فرع">حساب فرع</option>
+    </select>
+    <select id="loginName" class="login-select" style="display:none;">
+      <option value="">-- اختر الاسم --</option>
+    </select>
+    <input type="password" id="loginPin" placeholder="كلمة المرور" autocomplete="off" style="display:none;">
+    <button id="loginSubmit" type="button" style="display:none;">دخول</button>
+    <div id="loginError" class="login-error"></div>
+  </div>
+</div>
+
+<!-- INVOICES MODAL -->
+<div id="invoicesModal" class="modal-overlay" aria-hidden="true" hidden>
+  <div class="modal-dialog invoices-dialog">
+    <button id="invoicesModalClose" class="modal-close-btn" type="button">&times;</button>
+    <h2>📄 فواتيري</h2>
+    <p class="invoices-subtitle" id="invoicesSubtitle"></p>
+    <div id="invoicesList" class="invoices-list"></div>
+    <button id="invoicesCloseBtn" type="button" class="invoices-close-btn">إغلاق</button>
+  </div>
+</div>
+
+<!-- INVOICE DETAIL MODAL -->
+<div id="invoiceDetailModal" class="modal-overlay" aria-hidden="true" hidden>
+  <div class="modal-dialog invoice-detail-dialog">
+    <button id="invoiceDetailClose" class="modal-close-btn" type="button">&times;</button>
+    <div id="invoiceDetailContent"></div>
+  </div>
+</div>
+
+<!-- INVOICE PDF TEMPLATE (hidden) -->
+<div id="invoiceTemplate" aria-hidden="true">
+  <div class="invoice-box">
+    <div style="display:flex;align-items:center;justify-content:center;margin-bottom:8px;position:relative;">
+      <div class="inv-branch-label" style="position:absolute;left:0;top:0;font-size:11px;font-weight:700;color:#000;text-align:left;direction:ltr;">Receiving Branch: <span class="inv-branch-line" id="invRecvBranch" style="display:inline-block;min-width:120px;color:#000;font-weight:400;"></span></div>
+      <div class="invoice-brand" style="text-align:center;">
+        <img src="images/logo.png" class="invoice-logo" alt="Logo" style="display:block;width:80px;height:auto;margin:0 auto 4px;">
+        <div class="invoice-title-main" style="font-size:18px;font-weight:800;color:#111;text-align:center;">Materials Delivery Form</div>
+      </div>
+    </div>
+    <div class="invoice-info-row">
+      <span>Invoice No: <strong id="invoiceNo">0001</strong></span>
+      <span>Customer: <strong id="invoiceCustomer">Direct Customer</strong></span>
+      <span>Date: <strong id="invoiceDate"></strong></span>
+    </div>
+    <table id="invoiceTable" class="invoice-table">
+      <colgroup><col class="invoice-check-col"><col><col class="invoice-check-col"><col><col class="invoice-check-col"><col></colgroup>
+      <thead><tr><th>✔</th><th>Item</th><th>✔</th><th>Item</th><th>✔</th><th>Item</th></tr></thead>
+      <tbody id="invoiceProducts"></tbody>
+    </table>
+    <div class="invoice-summary-row" style="display:grid;grid-template-columns:1fr 1fr;margin-top:8px;border:1px solid #222;">
+      <div class="invoice-summary-item" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 10px;font-size:12px;font-weight:800;border-left:1px solid #222;"><strong id="invoiceTotal" style="font-size:15px;">0</strong><span>Total Items</span></div>
+      <div class="invoice-summary-item" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 10px;font-size:12px;font-weight:800;"><strong id="invoiceQty" style="font-size:15px;">0</strong><span>Total Qty</span></div>
+    </div>
+    <div class="invoice-delivery-info" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:18px;padding-top:10px;border-top:1px solid #222;direction:ltr;text-align:left;">
+      <div class="inv-delivery-col" style="font-size:11px;color:#333;"><div class="inv-delivery-title" style="font-weight:800;font-size:12px;color:#111;margin-bottom:8px;">Sent by:</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Name: ____________________________________________</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Date: ____________________________________________</div></div>
+      <div class="inv-delivery-col" style="font-size:11px;color:#333;"><div class="inv-delivery-title" style="font-weight:800;font-size:12px;color:#111;margin-bottom:8px;">Transferred by:</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Name: ____________________________________________</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Date: ____________________________________________</div></div>
+      <div class="inv-delivery-col" style="font-size:11px;color:#333;"><div class="inv-delivery-title" style="font-weight:800;font-size:12px;color:#111;margin-bottom:8px;">Received by:</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Name: ____________________________________________</div><div class="inv-delivery-row" style="margin-bottom:6px;font-weight:600;">Date: ____________________________________________</div></div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/app.js?v=20260714-2"></script>
+
+<!-- FLOATING MENU -->
+<button class="dash-menu-btn" id="dashMenuBtn" aria-label="القائمة"><span></span><span></span><span></span></button>
+<div class="dash-menu-dropdown" id="dashMenuDropdown">
+  <a href="index.html" data-i18n-menu="menuStore"><span class="dash-icon">🛒</span> المتجر</a>
+  <div class="dash-group">
+    <div class="dash-toggle" data-i18n-menu="menuCart"><span class="dash-icon">📋</span> السلة <span class="dash-arrow">▶</span></div>
+    <div class="dash-submenu">
+      <a href="cart.html" data-i18n-menu="menuCartPurchase"><span class="dash-icon">🛍️</span> سلة المشتريات</a>
+      <a href="inventory-cart.html" data-i18n-menu="menuCartInventory"><span class="dash-icon">📦</span> سلة الجرد</a>
+    </div>
+  </div>
+  <div class="dash-group">
+    <div class="dash-toggle" data-i18n-menu="menuInvoices"><span class="dash-icon">📄</span> الفواتير <span class="dash-arrow">▶</span></div>
+    <div class="dash-submenu">
+      <a href="invoices-view.html" data-i18n-menu="menuInvoicesBranch"><span class="dash-icon">🏪</span> فواتير الفروع</a>
+      <a href="inventory-view.html" data-i18n-menu="menuInvoicesInventory"><span class="dash-icon">📦</span> فواتير الجرد</a>
+    </div>
+  </div>
+  <div class="dash-group">
+    <div class="dash-toggle" data-i18n-menu="menuAdmin"><span class="dash-icon">⚙️</span> الإدارة <span class="dash-arrow">▶</span></div>
+    <div class="dash-submenu">
+      <a href="admin.html" data-i18n-menu="menuAdminGeneral"><span class="dash-icon">🛠️</span> إدارة عامة</a>
+      <a href="admins.html" data-i18n-menu="menuAdminManagers"><span class="dash-icon">🔐</span> إدارة المدراء</a>
+      <a href="statistics.html" data-i18n-menu="menuAdminStats"><span class="dash-icon">📊</span> إحصائيات الطلبات</a>
+    </div>
+  </div>
+  </div>
+<script>
+document.addEventListener("click",function(e){
+  var btn=document.getElementById("dashMenuBtn"),menu=document.getElementById("dashMenuDropdown");
+  if(!btn||!menu)return;
+  if(btn.contains(e.target)){btn.classList.toggle("active");menu.classList.toggle("show");}
+  else if(menu.contains(e.target)){
+    var toggle=e.target.closest(".dash-toggle");
+    if(toggle){e.stopPropagation();var sub=toggle.nextElementSibling;if(sub&&sub.classList.contains("dash-submenu")){sub.classList.toggle("open");toggle.classList.toggle("open");}}
+  }
+  else{btn.classList.remove("active");menu.classList.remove("show");}
+});
+(function(){
+  var LANG_KEY="sallah_lang";
+  function getLang(){return localStorage.getItem(LANG_KEY)||"ar";}
+  var menuT={ar:{menuStore:"المتجر",menuCart:"السلة",menuInvoices:"الفواتير",menuAdmin:"الإدارة",menuCartPurchase:"سلة المشتريات",menuCartInventory:"سلة الجرد",menuInvoicesBranch:"فواتير الفروع",menuInvoicesInventory:"فواتير الجرد",menuAdminGeneral:"إدارة عامة",menuAdminManagers:"إدارة المدراء",menuAdminStats:"إحصائيات الطلبات"},en:{menuStore:"Store",menuCart:"Cart",menuInvoices:"Invoices",menuAdmin:"Admin",menuCartPurchase:"Purchase Cart",menuCartInventory:"Inventory Cart",menuInvoicesBranch:"Branch Invoices",menuInvoicesInventory:"Inventory Invoices",menuAdminGeneral:"General Admin",menuAdminManagers:"Admin Management",menuAdminStats:"Order Statistics"}};
+  function applyMenu(){
+    var lang=getLang();var tr=menuT[lang]||menuT.ar;
+    document.querySelectorAll("#dashMenuDropdown a, #dashMenuDropdown .dash-toggle").forEach(function(el){
+      var key=el.getAttribute("data-i18n-menu");if(!key||!tr[key])return;
+      var icon=el.querySelector(".dash-icon");var iconHtml=icon?icon.outerHTML:"";
+      var arrow=el.querySelector(".dash-arrow");var arrowHtml=arrow?arrow.outerHTML:"";
+      el.innerHTML=iconHtml+" "+tr[key]+" "+arrowHtml;
+    });
+  }
+  applyMenu();
+})();
 </script>
-
 </body>
-
 </html>

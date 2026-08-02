@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Management</title>
+  <link rel="icon" type="image/png" href="images/icon.png">
+  <link rel="stylesheet" href="css/style.css?v=20260714-2">
+  <style>
+    .admin-mgr-toggle{background:transparent;color:var(--dark);border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:all .3s;}
+    .admin-mgr-toggle:hover{color:var(--accent);transform:translateY(-1px);}
+    @media(max-width:768px){.admin-mgr-toggle{padding:2px 6px;font-size:11px;border-radius:6px;}}
+  </style>
+<body>
+
+<!-- LOGIN SCREEN -->
+<section id="loginScreen" class="admin-login-screen" style="display:flex;">
+  <form id="loginForm" class="admin-login-card" autocomplete="off">
+    <button id="adminMgrLangToggle" class="admin-mgr-toggle" type="button" style="position:absolute;top:12px;right:12px;">EN</button>
+    <img src="images/logo.png" alt="Logo" onerror="this.style.display='none'">
+    <h1 id="adminsLoginTitle">Admin Management</h1>
+    <p id="adminsLoginSubtitle">Enter username and password</p>
+    <input type="text" id="loginUser" placeholder="Username" autocomplete="username" spellcheck="false">
+    <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
+    <button type="submit" id="adminsLoginBtn">Login</button>
+    <div id="loginError" class="admin-login-error"></div>
+  </form>
+</section>
+
+<!-- MAIN PANEL -->
+<div class="admin-box" id="mainPanel" style="display:none;">
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+    <a href="dashboard.html"><img src="images/logo.png" class="logo" alt="Logo" style="width:100px;height:auto;"></a>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:18px;font-weight:800;color:var(--dark);" id="profileDisplay"></div>
+      <div style="font-size:13px;color:var(--secondary);" id="adminsPanelSubtitle">Admin Management</div>
+    </div>
+    <button id="profileEditBtn" type="button" style="padding:6px 14px;border:1.5px solid var(--accent);border-radius:8px;background:var(--white);color:var(--accent);font-weight:700;cursor:pointer;font-size:13px;" data-i18n="editProfile">Edit Profile</button>
+    <button id="adminMgrLangToggleMain" class="admin-mgr-toggle" type="button">EN</button>
+    <button id="logoutBtn" type="button" style="padding:6px 14px;border:1.5px solid #dc3545;border-radius:8px;background:var(--white);color:#dc3545;font-weight:700;cursor:pointer;font-size:13px;" data-i18n="logout">Logout</button>
+  </div>
+
+  <div id="profileEditSection" style="display:none;margin-bottom:20px;padding:16px;background:var(--white);border-radius:var(--radius);border:1.5px solid var(--accent);">
+    <h3 style="margin:0 0 12px;color:var(--dark);" data-i18n="editProfile">Edit Profile</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <input type="text" id="editProfileUser" placeholder="New username" style="flex:1;min-width:120px;">
+      <input type="password" id="editProfilePass" placeholder="New password" style="flex:1;min-width:120px;">
+    </div>
+    <button id="saveProfileBtn" type="button" style="padding:8px 20px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;" data-i18n="save">Save</button>
+  </div>
+
+  <hr style="border:none;border-top:1px solid rgba(122,102,85,.15);margin:16px 0;">
+
+  <h2 style="color:var(--dark);margin-bottom:16px;">Manage Admins</h2>
+  <div id="adminsList"></div>
+
+  <!-- ADD ADMIN FORM -->
+  <div style="margin-top:16px;padding:16px;background:var(--white);border-radius:var(--radius);border:1.5px solid rgba(199,178,153,.25);">
+    <h3 style="margin:0 0 12px;color:var(--dark);" data-i18n="addAdmin">Add New Admin</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <input type="text" id="newAdminUser" placeholder="Username" style="flex:1;min-width:120px;">
+      <input type="password" id="newAdminPass" placeholder="Password" style="flex:1;min-width:120px;">
+      <button id="addAdminBtn" type="button" style="padding:8px 20px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;">➕ Add</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { db } from "./js/firebase.js";
+import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getLang, setLang, t, catLabel, applyMenuLang } from "./js/i18n.js";
+
+const adminmanagerColl = collection(db, "adminmanager");
+const adminsColl = collection(db, "admins");
+
+// Seed default super admin
+(async function seed(){ try { const s = await getDocs(adminmanagerColl); if(s.empty) await addDoc(adminmanagerColl, { username:"admin", password:"admin" }); } catch(e){} })();
+
+let currentSuperAdmin = null;
+let currentSuperAdminId = null;
+
+const loginScreen = document.getElementById("loginScreen");
+const mainPanel = document.getElementById("mainPanel");
+const loginForm = document.getElementById("loginForm");
+const loginUser = document.getElementById("loginUser");
+const loginPass = document.getElementById("loginPass");
+const loginError = document.getElementById("loginError");
+const profileDisplay = document.getElementById("profileDisplay");
+const adminsList = document.getElementById("adminsList");
+
+function applyAdminMgrLang(){
+  const lang=getLang();const isEn=lang==="en";
+  document.documentElement.lang=lang;document.documentElement.dir=isEn?"ltr":"rtl";
+  const tb=document.getElementById("adminMgrLangToggle");if(tb)tb.textContent=isEn?"🌐 عربي":"🌐 EN";
+  const tb2=document.getElementById("adminMgrLangToggleMain");if(tb2)tb2.textContent=isEn?"🌐 عربي":"🌐 EN";
+  const t1=document.getElementById("adminsLoginTitle");if(t1)t1.textContent=t("adminManagement");
+  const t2=document.getElementById("adminsLoginSubtitle");if(t2)t2.textContent=t("enterUserPass");
+  const t3=document.getElementById("adminsLoginBtn");if(t3)t3.textContent=t("login");
+  const t4=document.getElementById("adminsPanelSubtitle");if(t4)t4.textContent=t("adminManagement");
+  document.querySelectorAll("[data-i18n]").forEach(el=>{const k=el.getAttribute("data-i18n");if(t(k)!==k)el.textContent=t(k);});
+  loginUser.placeholder=t("username");loginPass.placeholder=t("password");
+  const ph1=document.getElementById("editProfileUser");if(ph1)ph1.placeholder=t("newUsername");
+  const ph2=document.getElementById("editProfilePass");if(ph2)ph2.placeholder=t("newPassword");
+  const ph3=document.getElementById("newAdminUser");if(ph3)ph3.placeholder=t("username");
+  const ph4=document.getElementById("newAdminPass");if(ph4)ph4.placeholder=t("password");
+  const ab=document.getElementById("addAdminBtn");if(ab)ab.innerHTML=t("add")?'➕ '+t("add"):'➕ Add';
+  applyMenuLang();
+}
+
+document.getElementById("adminMgrLangToggle")?.addEventListener("click",()=>{setLang(getLang()==="en"?"ar":"en");applyAdminMgrLang();});
+document.getElementById("adminMgrLangToggleMain")?.addEventListener("click",()=>{setLang(getLang()==="en"?"ar":"en");applyAdminMgrLang();renderAdmins();});
+
+loginForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  const u = loginUser.value.trim();
+  const p = loginPass.value.trim();
+  if(!u || !p){ loginError.textContent = t("enterUserPass"); return; }
+  loginError.textContent = t("checking");
+  try {
+    const q = query(adminmanagerColl, where("username", "==", u));
+    const snap = await getDocs(q);
+    if(snap.empty){ loginError.textContent = t("accountNotFound"); return; }
+    const docData = snap.docs[0];
+    const data = docData.data();
+    if(data.password !== p){ loginError.textContent = t("wrongPassword"); return; }
+    currentSuperAdmin = data;
+    currentSuperAdminId = docData.id;
+    loginScreen.style.display = "none";
+    mainPanel.style.display = "";
+    applyAdminMgrLang();
+    renderAdmins();
+    updateProfile();
+  } catch(e) { loginError.textContent = t("errorOccurredShort") + ": " + e.message; }
+});
+
+function updateProfile(){
+  profileDisplay.textContent = "👤 " + (currentSuperAdmin?.username || "");
+}
+
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  currentSuperAdmin = null;
+  currentSuperAdminId = null;
+  mainPanel.style.display = "none";
+  loginScreen.style.display = "flex";
+  loginUser.value = "";
+  loginPass.value = "";
+  loginError.textContent = "";
+});
+
+// Profile edit (super admin's own profile)
+const profileEditSection = document.getElementById("profileEditSection");
+document.getElementById("profileEditBtn").addEventListener("click", () => {
+  profileEditSection.style.display = profileEditSection.style.display === "none" ? "" : "none";
+  document.getElementById("editProfileUser").value = currentSuperAdmin?.username || "";
+  document.getElementById("editProfilePass").value = "";
+});
+document.getElementById("saveProfileBtn").addEventListener("click", async () => {
+  const nu = document.getElementById("editProfileUser").value.trim();
+  const np = document.getElementById("editProfilePass").value.trim();
+  if(!nu && !np){ alert(t("enterAtLeastOne")); return; }
+  const updates = {};
+  if(nu && nu !== currentSuperAdmin.username) updates.username = nu;
+  if(np) updates.password = np;
+  if(Object.keys(updates).length === 0){ alert(t("noChanges")); return; }
+  try {
+    await updateDoc(doc(db, "adminmanager", currentSuperAdminId), updates);
+    Object.assign(currentSuperAdmin, updates);
+    updateProfile();
+    profileEditSection.style.display = "none";
+    alert(t("profileUpdated"));
+  } catch(e) { alert(t("errorOccurredShort") + ": " + e.message); }
+});
+
+// Add admin (to admins collection)
+document.getElementById("addAdminBtn").addEventListener("click", async () => {
+  const u = document.getElementById("newAdminUser").value.trim();
+  const p = document.getElementById("newAdminPass").value.trim();
+  if(!u || !p){ alert(t("enterUserPass")); return; }
+  try {
+    const q = query(adminsColl, where("username", "==", u));
+    const snap = await getDocs(q);
+    if(!snap.empty){ alert(t("usernameExists")); return; }
+    const defaultPerms = { categories: {}, canAddProducts: {}, canManageCustomers: true };
+    _catsCache.forEach(cat => {
+      const k = cat.key || cat;
+      defaultPerms.categories[k] = true;
+      defaultPerms.canAddProducts[k] = true;
+    });
+    await addDoc(adminsColl, { username: u, password: p, permissions: defaultPerms });
+    document.getElementById("newAdminUser").value = "";
+    document.getElementById("newAdminPass").value = "";
+    renderAdmins();
+  } catch(e) { alert(t("errorOccurredShort") + ": " + e.message); }
+});
+
+// Fetch categories from Firestore (bilingual)
+let _catsCache = [];
+async function loadAdminMgrCats(){
+  try{
+    const snap=await getDocs(query(collection(db,"categories"),orderBy("order","asc")));
+    if(!snap.empty){
+      _catsCache=snap.docs.map(d=>{const da=d.data();return{key:da.nameAr,nameAr:da.nameAr,nameEn:da.nameEn||da.nameAr};});
+      return;
+    }
+  }catch(e){}
+  _catsCache=["قسم المعمل","قسم السوبرماركت","قسم محلات الجملة","قسم المستودع","احتياجات المعمل"].map(k=>({key:k,nameAr:k,nameEn:catLabel(k)}));
+}
+function catLabelAdmin(cat){
+  const key=cat.key||cat;
+  const lbl=catLabel(key);
+  if(lbl!==key)return lbl;
+  return getLang()==="en"?(cat.nameEn||key):(cat.nameAr||key);
+}
+
+// Render admins (from admins collection)
+async function renderAdmins(){
+  if(!adminsList) return;
+  await loadAdminMgrCats();
+  adminsList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--secondary);">' + t("loading") + '...</div>';
+  try {
+    const snap = await getDocs(adminsColl);
+    adminsList.innerHTML = "";
+    if(snap.empty){ adminsList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--secondary);">' + t("noAdmins") + '</div>'; return; }
+    snap.forEach(d => {
+      const data = d.data();
+      const adminId = d.id;
+      const card = document.createElement("div");
+      card.className = "customer-admin-card";
+      
+      const perms = data.permissions || {};
+      let catPerms = perms.categories || {};
+      let prodPerms = perms.canAddProducts || {};
+      const canManageCust = perms.canManageCustomers || false;
+      
+      card.innerHTML = '<div class="cust-header" style="cursor:pointer;"><span class="admin-expand-arrow" style="font-size:10px;margin-inline-end:8px;">\u25B6</span><strong>\u{1F511} ' + escapeHTML(data.username) + '</strong></div><div class="cust-invoices" style="display:none;margin-top:8px;"></div>';
+      
+      const header = card.querySelector(".cust-header");
+      const expandArrow = card.querySelector(".admin-expand-arrow");
+      const detailsDiv = card.querySelector(".cust-invoices");
+      
+      header.addEventListener("click", () => {
+        const isOpen = detailsDiv.style.display !== "none";
+        if(isOpen){ detailsDiv.style.display = "none"; expandArrow.textContent = "\u25B6"; return; }
+        expandArrow.textContent = "\u25BC";
+        
+        // Build permission UI dynamically when opened (to get fresh cat list)
+        let html = '';
+        
+        // Section 1: Category visibility
+        html += '<div class="perm-header"><span>📂 ' + t("categoryVisibility") + '</span></div>';
+        _catsCache.forEach(cat => {
+          const catKey = cat.key || cat;
+          const checked = catPerms[catKey] !== false;
+          html += '<div class="perm-toggle-row"><span class="perm-cat-name">' + catLabelAdmin(cat) + '</span><label class="perm-toggle-switch"><input type="checkbox" class="perm-cat-cb" data-cat="' + catKey + '" ' + (checked?'checked':'') + '><span class="perm-toggle-slider"></span></label></div>';
+        });
+        
+        // Section 2: Product add/edit permissions per category
+        html += '<div class="perm-header" style="margin-top:10px;"><span>🛒 ' + t("canAddProducts") + '</span></div>';
+        _catsCache.forEach(cat => {
+          const catKey = cat.key || cat;
+          const checked = prodPerms[catKey] || false;
+          html += '<div class="perm-toggle-row"><span class="perm-cat-name">' + catLabelAdmin(cat) + '</span><label class="perm-toggle-switch"><input type="checkbox" class="perm-prod-cb" data-cat="' + catKey + '" ' + (checked?'checked':'') + '><span class="perm-toggle-slider"></span></label></div>';
+        });
+        
+        // Section 3: Customer management
+        html += '<div class="perm-toggle-row" style="margin-top:6px;"><span class="perm-cat-name">👥 ' + t("manageCustomers") + '</span><label class="perm-toggle-switch"><input type="checkbox" id="permCust-' + adminId + '" ' + (canManageCust?'checked':'') + '><span class="perm-toggle-slider"></span></label></div>';
+        
+        // Save permissions button
+        html += '<button class="save-perm-btn" type="button" style="margin-top:12px;padding:8px 20px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:800;cursor:pointer;font-size:13px;">💾 ' + t("savePerms") + '</button>';
+        
+        // Section 4: Edit admin details
+        html += '<hr style="margin:16px 0;border:none;border-top:1px solid rgba(199,178,153,.2);">';
+        html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">';
+        html += '<input type="text" class="edit-admin-user" value="' + escapeHTML(data.username) + '" placeholder="' + escapeHTML(t("username")) + '" style="flex:1;min-width:100px;padding:8px 12px;border:1.5px solid rgba(122,102,85,.2);border-radius:8px;font-size:13px;outline:none;">';
+        html += '<input type="password" class="edit-admin-pass" placeholder="' + escapeHTML(t("newPassword")) + '" style="flex:1;min-width:100px;padding:8px 12px;border:1.5px solid rgba(122,102,85,.2);border-radius:8px;font-size:13px;outline:none;">';
+        html += '<button class="save-admin-btn" type="button" style="padding:8px 18px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:800;cursor:pointer;font-size:13px;">💾 ' + t("save") + '</button>';
+        html += '</div>';
+        html += '<button class="del-admin-btn" type="button" style="padding:8px 18px;border:none;border-radius:8px;background:rgba(220,53,69,.1);color:#dc3545;font-weight:800;cursor:pointer;font-size:13px;">🗑 ' + t("deleteBtn") + '</button>';
+        
+        detailsDiv.innerHTML = html;
+        detailsDiv.style.display = "block";
+        
+        // Save permissions handler
+        detailsDiv.querySelector(".save-perm-btn").addEventListener("click", async () => {
+          const newPerms = { categories: {}, canAddProducts: {}, canManageCustomers: false };
+          detailsDiv.querySelectorAll(".perm-cat-cb").forEach(cb => { newPerms.categories[cb.dataset.cat] = cb.checked; });
+          detailsDiv.querySelectorAll(".perm-prod-cb").forEach(cb => { newPerms.canAddProducts[cb.dataset.cat] = cb.checked; });
+          newPerms.canManageCustomers = document.getElementById("permCust-" + adminId)?.checked || false;
+          try {
+            await updateDoc(doc(db, "admins", adminId), { permissions: newPerms });
+            data.permissions = newPerms;
+            catPerms = newPerms.categories;
+            prodPerms = newPerms.canAddProducts;
+            alert(t("permsSaved") + " " + data.username);
+          } catch(e) { alert(t("errorOccurredShort") + ": " + e.message); }
+        });
+        
+        // Save admin (username/password) handler
+        detailsDiv.querySelector(".save-admin-btn").addEventListener("click", async () => {
+          const nu = detailsDiv.querySelector(".edit-admin-user").value.trim();
+          const np = detailsDiv.querySelector(".edit-admin-pass").value.trim();
+          if(!nu && !np){ alert(t("enterAtLeastOne")); return; }
+          const updates = {};
+          if(nu && nu !== data.username) updates.username = nu;
+          if(np) updates.password = np;
+          if(Object.keys(updates).length === 0){ alert(t("noChanges")); return; }
+          try {
+            await updateDoc(doc(db, "admins", adminId), updates);
+            Object.assign(data, updates);
+            renderAdmins();
+            alert(t("profileUpdated"));
+          } catch(e) { alert(t("errorOccurredShort") + ": " + e.message); }
+        });
+        
+        // Delete admin handler
+        detailsDiv.querySelector(".del-admin-btn").addEventListener("click", async () => {
+          if(!confirm(t("deleteConfirm") + " " + data.username + "?")) return;
+          try { await deleteDoc(doc(db, "admins", adminId)); renderAdmins(); }
+          catch(e) { alert(t("errorOccurredShort") + ": " + e.message); }
+        });
+      });
+      
+      adminsList.appendChild(card);
+    });
+  } catch(e) { adminsList.innerHTML = '<div style="text-align:center;padding:20px;color:#dc3545;">' + t("errorOccurred") + '</div>'; }
+}
+
+function escapeHTML(v){ return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;"); }
+
+applyAdminMgrLang();
+</script>
+
+<button class="dash-menu-btn" id="dashMenuBtn" aria-label="القائمة"><span></span><span></span><span></span></button>
+<div class="dash-menu-dropdown" id="dashMenuDropdown">
+  <a href="index.html" data-i18n-menu="menuStore"><span class="dash-icon">🛒</span> المتجر</a>
+  <div class="dash-group">
+    <div class="dash-toggle" data-i18n-menu="menuCart"><span class="dash-icon">📋</span> السلة <span class="dash-arrow">▶</span></div>
+    <div class="dash-submenu">
+      <a href="cart.html" data-i18n-menu="menuCartPurchase"><span class="dash-icon">🛍️</span> سلة المشتريات</a>
+      <a href="inventory-cart.html" data-i18n-menu="menuCartInventory"><span class="dash-icon">📦</span> سلة الجرد</a>
+    </div>
+  </div>
+  <div class="dash-group">
+    <div class="dash-toggle" data-i18n-menu="menuInvoices"><span class="dash-icon">📄</span> الفواتير <span class="dash-arrow">▶</span></div>
+    <div class="dash-submenu">
+      <a href="invoices-view.html" data-i18n-menu="menuInvoicesBranch"><span class="dash-icon">🏪</span> فواتير الفروع</a>
+      <a href="inventory-view.html" data-i18n-menu="menuInvoicesInventory"><span class="dash-icon">📦</span> فواتير الجرد</a>
+    </div>
+  </div>
+  <div class="dash-group">
+    <div class="dash-toggle" data-i18n-menu="menuAdmin"><span class="dash-icon">⚙️</span> الإدارة <span class="dash-arrow">▶</span></div>
+    <div class="dash-submenu">
+      <a href="admin.html" data-i18n-menu="menuAdminGeneral"><span class="dash-icon">🛠️</span> إدارة عامة</a>
+      <a href="admins.html" data-i18n-menu="menuAdminManagers"><span class="dash-icon">🔐</span> إدارة المدراء</a>
+      <a href="statistics.html" data-i18n-menu="menuAdminStats"><span class="dash-icon">📊</span> إحصائيات الطلبات</a>
+    </div>
+  </div>
+</div>
+<script>
+document.addEventListener("click",function(e){
+  var btn=document.getElementById("dashMenuBtn"),menu=document.getElementById("dashMenuDropdown");
+  if(!btn||!menu)return;
+  if(btn.contains(e.target)){btn.classList.toggle("active");menu.classList.toggle("show");}
+  else if(menu.contains(e.target)){
+    var toggle=e.target.closest(".dash-toggle");
+    if(toggle){e.stopPropagation();var sub=toggle.nextElementSibling;if(sub&&sub.classList.contains("dash-submenu")){sub.classList.toggle("open");toggle.classList.toggle("open");}}
+  }
+  else{btn.classList.remove("active");menu.classList.remove("show");}
+});
+(function(){
+  var LANG_KEY="sallah_lang";
+  function getLang(){return localStorage.getItem(LANG_KEY)||"ar";}
+  var menuT={ar:{menuStore:"المتجر",menuCart:"السلة",menuInvoices:"الفواتير",menuAdmin:"الإدارة",menuCartPurchase:"سلة المشتريات",menuCartInventory:"سلة الجرد",menuInvoicesBranch:"فواتير الفروع",menuInvoicesInventory:"فواتير الجرد",menuAdminGeneral:"إدارة عامة",menuAdminManagers:"إدارة المدراء",menuAdminStats:"إحصائيات الطلبات"},en:{menuStore:"Store",menuCart:"Cart",menuInvoices:"Invoices",menuAdmin:"Admin",menuCartPurchase:"Purchase Cart",menuCartInventory:"Inventory Cart",menuInvoicesBranch:"Branch Invoices",menuInvoicesInventory:"Inventory Invoices",menuAdminGeneral:"General Admin",menuAdminManagers:"Admin Management",menuAdminStats:"Order Statistics"}};
+  function applyMenu(){
+    var lang=getLang();var tr=menuT[lang]||menuT.ar;
+    document.querySelectorAll("#dashMenuDropdown a, #dashMenuDropdown .dash-toggle").forEach(function(el){
+      var key=el.getAttribute("data-i18n-menu");if(!key||!tr[key])return;
+      var icon=el.querySelector(".dash-icon");var iconHtml=icon?icon.outerHTML:"";
+      var arrow=el.querySelector(".dash-arrow");var arrowHtml=arrow?arrow.outerHTML:"";
+      el.innerHTML=iconHtml+" "+tr[key]+" "+arrowHtml;
+    });
+  }
+  applyMenu();
+})();
+</script>
+</body>
+</html>
