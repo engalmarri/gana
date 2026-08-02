@@ -4,7 +4,7 @@ import {
   collection, addDoc, getDoc, getDocs, deleteDoc, updateDoc, doc,
   query, where, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-import { getLang, setLang, t, catLabel, applyFullLang, applyMenuLang } from "./i18n.js";
+import { getLang, setLang, t, catLabel, setLabel, applyFullLang, applyMenuLang } from "./i18n.js";
 
 let editingId = null;
 let allProducts = [];
@@ -139,7 +139,7 @@ const loadedTabs={};
 async function loadTabContent(name){
   if(loadedTabs[name])return;
   if(name==="customers"&&currentAdminPerms.canManageCustomers===false){
-    const sec=document.getElementById("section-customers");if(sec)sec.innerHTML=`<div style="text-align:center;padding:40px 20px;color:#dc3545;font-size:16px;font-weight:700;">🔒 ${t("noCustomerPerm")}</div>`;
+    const sec=document.getElementById("section-customers");if(sec)sec.innerHTML=`<div style="text-align:center;padding:40px 20px;color:#dc3545;font-size:16px;font-weight:700;"><i data-lucide="lock"></i> ${t("noCustomerPerm")}</div>`;
     loadedTabs[name]=true;return;
   }
   loadedTabs[name]=true;switch(name){case"products":await loadProducts();break;case"invoices":await loadAllInvoices();break;case"customers":await loadAllCustomers();populateCustBranchDropdown();break;case"branches":renderBranches();break;case"categories":renderCategories();break;}
@@ -206,7 +206,7 @@ function renderCategoryProducts(cat){
   } else {
     list.innerHTML = "";
     catProducts.forEach(p => {
-      list.insertAdjacentHTML("beforeend",`<div class="admin-product"><img src="${escapeHTML(getProductImage(p))}" alt="${escapeHTML(p.description||p.name||"")}" onerror="this.src='images/noimg.jpg'"><div class="admin-info"><h3>${escapeHTML(p.description||"")}</h3><p class="product-name-ar">${escapeHTML(p.name||"")}</p><p>SKU: ${escapeHTML(p.code||"")}</p></div><div class="admin-actions"><label class="inv-vis-toggle" title="Show in Inventory Store"><input type="checkbox" class="inv-vis-cb" data-id="${escapeHTML(p.id)}"${p.invVisible!==false?" checked":""}><span>👁</span></label><button class="edit-btn" type="button" onclick="editProduct('${escapeHTML(p.id)}')">${t("editBtn")}</button><button class="delete-btn" type="button" onclick="deleteProduct('${escapeHTML(p.id)}')">${t("deleteBtn")}</button></div></div>`);
+      list.insertAdjacentHTML("beforeend",`<div class="admin-product"><img src="${escapeHTML(getProductImage(p))}" alt="${escapeHTML(p.description||p.name||"")}" onerror="this.src='images/noimg.jpg'"><div class="admin-info"><h3>${escapeHTML(p.description||"")}</h3><p class="product-name-ar">${escapeHTML(p.name||"")}</p><p>SKU: ${escapeHTML(p.code||"")}</p></div><div class="admin-actions"><label class="inv-vis-toggle" title="Show in Inventory Store"><input type="checkbox" class="inv-vis-cb" data-id="${escapeHTML(p.id)}"${p.invVisible!==false?" checked":""}><i data-lucide="eye"></i></label><button class="edit-btn" type="button" onclick="editProduct('${escapeHTML(p.id)}')"><i data-lucide="pencil"></i>${t("editBtn")}</button><button class="delete-btn" type="button" onclick="deleteProduct('${escapeHTML(p.id)}')"><i data-lucide="trash-2"></i>${t("deleteBtn")}</button></div></div>`);
     });
     list.querySelectorAll(".inv-vis-cb").forEach(cb => {
       cb.addEventListener("change", function(){
@@ -239,7 +239,7 @@ function renderProducts(products){
   const checked = new Set((window.__selectedProducts)||[]);
   products.forEach(p=>{
     const cid = p.id;
-    productsTable.insertAdjacentHTML("beforeend",`<div class="admin-product"><label class="prod-check"><input type="checkbox" class="prod-cb" value="${escapeHTML(cid)}"${checked.has(cid)?" checked":""}></label><img src="${escapeHTML(getProductImage(p))}" alt="${escapeHTML(p.description||p.name||"")}" onerror="this.src='images/noimg.jpg'"><div class="admin-info"><h3>${escapeHTML(p.description||"")}</h3><p class="product-name-ar">${escapeHTML(p.name||"")}</p><p>SKU: ${escapeHTML(p.code||"")}</p><p style="color:var(--accent);font-weight:700;">${escapeHTML(catLabel(p.category||""))}</p></div><div class="admin-actions"><label class="inv-vis-toggle" title="Show in Inventory Store"><input type="checkbox" class="inv-vis-cb" data-id="${escapeHTML(cid)}"${p.invVisible!==false?" checked":""}><span>👁</span></label><button class="edit-btn" type="button" onclick="editProduct('${escapeHTML(p.id)}')">${t("editBtn")}</button><button class="delete-btn" type="button" onclick="deleteProduct('${escapeHTML(p.id)}')">${t("deleteBtn")}</button></div></div>`);
+    productsTable.insertAdjacentHTML("beforeend",`<div class="admin-product"><label class="prod-check"><input type="checkbox" class="prod-cb" value="${escapeHTML(cid)}"${checked.has(cid)?" checked":""}></label><img src="${escapeHTML(getProductImage(p))}" alt="${escapeHTML(p.description||p.name||"")}" onerror="this.src='images/noimg.jpg'"><div class="admin-info"><h3>${escapeHTML(p.description||"")}</h3><p class="product-name-ar">${escapeHTML(p.name||"")}</p><p>SKU: ${escapeHTML(p.code||"")}</p><p style="color:var(--accent);font-weight:700;">${escapeHTML(catLabel(p.category||""))}</p></div><div class="admin-actions"><label class="inv-vis-toggle" title="Show in Inventory Store"><input type="checkbox" class="inv-vis-cb" data-id="${escapeHTML(cid)}"${p.invVisible!==false?" checked":""}><i data-lucide="eye"></i></label><button class="edit-btn" type="button" onclick="editProduct('${escapeHTML(p.id)}')"><i data-lucide="pencil"></i>${t("editBtn")}</button><button class="delete-btn" type="button" onclick="deleteProduct('${escapeHTML(p.id)}')"><i data-lucide="trash-2"></i>${t("deleteBtn")}</button></div></div>`);
   });
   // Re-check checkboxes after re-render
   productsTable.querySelectorAll(".prod-cb").forEach(cb => {
@@ -399,7 +399,7 @@ function renderAllInvoices(invoices){
     }
     const dn=inv.branchName||inv.invoiceNo||"";const acc=inv.accountType||"";
     const card=document.createElement("div");card.className="invoice-admin-card";
-    card.innerHTML=`<div class="inv-header"><strong>${escapeHTML(dn)}</strong><span>${ds}</span></div><div class="inv-customer">👤 ${escapeHTML(inv.customerName||"")}</div>${acc?`<div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px;">${escapeHTML(acc)}</div>`:""}<div class="inv-items-preview">${escapeHTML(preview)}</div><div class="inv-footer"><span>${t("products")}: ${inv.totalItems||0}</span><span>${t("qty")}: ${inv.totalQty||0}</span></div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button class="inv-toggle-btn" type="button">${t("showDetails")}</button><button class="inv-print-btn" type="button">📥 PDF</button><button class="inv-del-btn" type="button">🗑 ${t("deleteBtn")}</button></div><table class="inv-detail-table"><thead><tr><th>#</th><th>${t("products")}</th><th>KOD</th><th>${t("qty")}</th></tr></thead><tbody>${rows}</tbody></table>`;
+    card.innerHTML=`<div class="inv-header"><strong>${escapeHTML(dn)}</strong><span>${ds}</span></div><div class="inv-customer"><i data-lucide="user"></i> ${escapeHTML(inv.customerName||"")}</div>${acc?`<div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px;">${escapeHTML(acc)}</div>`:""}<div class="inv-items-preview">${escapeHTML(preview)}</div><div class="inv-footer"><span>${t("products")}: ${inv.totalItems||0}</span><span>${t("qty")}: ${inv.totalQty||0}</span></div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button class="inv-toggle-btn" type="button">${t("showDetails")}</button><button class="inv-print-btn" type="button"><i data-lucide="download"></i> PDF</button><button class="inv-del-btn" type="button"><i data-lucide="trash-2"></i> ${t("deleteBtn")}</button></div><table class="inv-detail-table"><thead><tr><th>#</th><th>${t("products")}</th><th>KOD</th><th>${t("qty")}</th></tr></thead><tbody>${rows}</tbody></table>`;
     card.querySelector(".inv-toggle-btn").addEventListener("click",()=>{const t2=card.querySelector(".inv-detail-table");t2.classList.toggle("show");card.querySelector(".inv-toggle-btn").textContent=t2.classList.contains("show")?t("hideDetails"):t("showDetails");});
     card.querySelector(".inv-print-btn").addEventListener("click",()=>downloadInvoicePdf(inv));
     card.querySelector(".inv-del-btn").addEventListener("click",()=>openDeleteInvoiceModal(inv.id,dn));
@@ -433,7 +433,7 @@ function renderAllCustomers(customers){
     const ds=cust.createdAt?formatArabicDate(cust.createdAt):"";
     const acc=cust.accountType||"غير محدد";
     const card=document.createElement("div");card.className="customer-admin-card";
-    card.innerHTML=`<div class="cust-header"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><strong>👤 ${escapeHTML(cust.name)}</strong><span style="color:#dc3545;font-size:10px;font-weight:700;">${escapeHTML(acc)}</span></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;"><span style="font-size:11px;color:var(--secondary);font-weight:600;">PIN: ${escapeHTML(cust.pin||"")}</span><button class="cust-action-btn" type="button" style="font-size:16px;padding:2px 10px;border:1px solid var(--accent);border-radius:6px;background:var(--white);color:var(--accent);cursor:pointer;font-weight:700;">▾</button></div></div><div style="font-size:12px;color:var(--secondary);margin-top:4px;">${ds?`${t("registrationDate")} ${ds}`:""}</div><div style="font-size:12px;color:var(--secondary);">${t("branchName")}: <span class="cust-branch-label">${cust.branch?escapeHTML(cust.branch):"---"}</span></div><div class="cust-invoices"></div><div class="cust-actions-dropdown" style="display:none;margin-top:8px;padding:8px;border:1px solid var(--accent);border-radius:8px;background:var(--bg);flex-direction:column;gap:6px;"></div>`;
+    card.innerHTML=`<div class="cust-header"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><strong><i data-lucide="user"></i> ${escapeHTML(cust.name)}</strong><span style="color:#dc3545;font-size:10px;font-weight:700;">${escapeHTML(acc)}</span></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;"><span style="font-size:11px;color:var(--secondary);font-weight:600;">PIN: ${escapeHTML(cust.pin||"")}</span><button class="cust-action-btn" type="button" style="font-size:16px;padding:2px 10px;border:1px solid var(--accent);border-radius:6px;background:var(--white);color:var(--accent);cursor:pointer;font-weight:700;"><i data-lucide="chevron-down"></i></button></div></div><div style="font-size:12px;color:var(--secondary);margin-top:4px;">${ds?`${t("registrationDate")} ${ds}`:""}</div><div style="font-size:12px;color:var(--secondary);">${t("branchName")}: <span class="cust-branch-label">${cust.branch?escapeHTML(cust.branch):"---"}</span></div><div class="cust-invoices"></div><div class="cust-actions-dropdown" style="display:none;margin-top:8px;padding:8px;border:1px solid var(--accent);border-radius:8px;background:var(--bg);flex-direction:column;gap:6px;"></div>`;
     const invDiv=card.querySelector(".cust-invoices");
     const dropdown=card.querySelector(".cust-actions-dropdown");
     const branchLabel=card.querySelector(".cust-branch-label");
@@ -443,10 +443,10 @@ function renderAllCustomers(customers){
       if(vis==="none"||!vis){
         dropdown.style.display="flex";
         dropdown.innerHTML=`
-          <button class="cust-perm-action-btn" type="button" style="padding:8px 12px;border:none;border-radius:6px;background:var(--white);color:var(--dark);font-size:13px;font-weight:700;cursor:pointer;text-align:right;box-shadow:var(--shadow);">🔑 ${t("permissionsLabel")}</button>
-          <button class="cust-branch-action-btn" type="button" style="padding:8px 12px;border:none;border-radius:6px;background:var(--white);color:var(--dark);font-size:13px;font-weight:700;cursor:pointer;text-align:right;box-shadow:var(--shadow);">🏪 ${t("editBranch")}</button>
-          <button class="cust-inv-action-btn" type="button" style="padding:8px 12px;border:none;border-radius:6px;background:var(--white);color:var(--dark);font-size:13px;font-weight:700;cursor:pointer;text-align:right;box-shadow:var(--shadow);">📄 ${t("showInvoices")}</button>
-          <button class="cust-del-action-btn" type="button" style="padding:8px 12px;border:none;border-radius:6px;background:rgba(220,53,69,.1);color:#dc3545;font-size:13px;font-weight:700;cursor:pointer;text-align:right;box-shadow:var(--shadow);">🗑 ${t("deleteBtn")}</button>`;
+          <button class="cust-perm-action-btn" type="button" style="padding:8px 12px;border:none;border-radius:6px;background:var(--white);color:var(--dark);font-size:13px;font-weight:700;cursor:pointer;text-align:right;box-shadow:var(--shadow);"><i data-lucide="key-round"></i> ${t("permissionsLabel")}</button>
+          <button class="cust-branch-action-btn" type="button" style="padding:8px 12px;border:none;border-radius:6px;background:var(--white);color:var(--dark);font-size:13px;font-weight:700;cursor:pointer;text-align:right;box-shadow:var(--shadow);"><i data-lucide="store"></i> ${t("editBranch")}</button>
+          <button class="cust-inv-action-btn" type="button" style="padding:8px 12px;border:none;border-radius:6px;background:var(--white);color:var(--dark);font-size:13px;font-weight:700;cursor:pointer;text-align:right;box-shadow:var(--shadow);"><i data-lucide="file-text"></i> ${t("showInvoices")}</button>
+          <button class="cust-del-action-btn" type="button" style="padding:8px 12px;border:none;border-radius:6px;background:rgba(220,53,69,.1);color:#dc3545;font-size:13px;font-weight:700;cursor:pointer;text-align:right;box-shadow:var(--shadow);"><i data-lucide="trash-2"></i> ${t("deleteBtn")}</button>`;
         dropdown.querySelector(".cust-perm-action-btn").addEventListener("click",()=>{openCustPerms(cust,card,dropdown);});
         dropdown.querySelector(".cust-branch-action-btn").addEventListener("click",()=>{openCustBranchEdit(cust,card,branchLabel,dropdown);});
         dropdown.querySelector(".cust-inv-action-btn").addEventListener("click",()=>{toggleCustInvoices(cust,invDiv,dropdown);});
@@ -464,7 +464,7 @@ function openCustBranchEdit(cust,card,branchLabel,dropdown){
   const sel=document.createElement("select");sel.style.cssText="padding:6px;border:1.5px solid var(--accent);border-radius:6px;font-size:12px;font-weight:600;background:var(--white);color:var(--dark);cursor:pointer;width:100%;margin-bottom:6px;";
   const blank=document.createElement("option");blank.value="";blank.textContent="--";sel.appendChild(blank);
   branches.forEach(b=>{const o=document.createElement("option");o.value=b;o.textContent=b;if(b===cur)o.selected=true;sel.appendChild(o);});
-  const saveBtn=document.createElement("button");saveBtn.textContent=t("saveBtn")||"💾 حفظ";saveBtn.style.cssText="padding:6px 12px;border:none;border-radius:6px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;width:100%;";
+  const saveBtn=document.createElement("button");saveBtn.innerHTML=`<i data-lucide="save"></i>${t("saveBtn")||"حفظ"}`;saveBtn.style.cssText="padding:6px 12px;border:none;border-radius:6px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;";
   const cont=document.createElement("div");cont.style.cssText="margin-top:6px;";
   cont.appendChild(sel);cont.appendChild(saveBtn);
   dropdown.innerHTML="";dropdown.appendChild(cont);
@@ -483,7 +483,7 @@ function openCustPerms(cust,card,dropdown){
   const curPerms=cust.permissions||{};
   const defPerms=CATEGORY_PERMISSIONS[cust.accountType]||CAT_ORDER_ADMIN;
   const hasCustom=typeof curPerms==='object'&&Object.keys(curPerms).length>0;
-  let ph=`<div class="perm-header"><span>🔑 ${t("permissionsLabel")}</span></div>`;
+  let ph=`<div class="perm-header"><span><i data-lucide="key-round"></i> ${t("permissionsLabel")}</span></div>`;
   CAT_ORDER_ADMIN.forEach(cat=>{
     const checked=hasCustom?!!curPerms[cat]:defPerms.includes(cat);
     ph+=`<div class="perm-toggle-row"><span class="perm-cat-name" data-i18n-cat="${cat}">${catLabel(cat)}</span><label class="perm-toggle-switch"><input type="checkbox" class="perm-checkbox" data-cat="${cat}" ${checked?"checked":""}><span class="perm-toggle-slider"></span></label></div>`;
@@ -603,7 +603,7 @@ function renderBranches(){
   list.innerHTML="";
   branches.forEach((b,idx)=>{
     const card=document.createElement("div");card.className="customer-admin-card";
-    card.innerHTML=`<div class="cust-header"><strong>${escapeHTML(b)}</strong></div><div style="display:flex;gap:8px;margin-top:8px;"><button class="branch-edit-btn" type="button" style="background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;" data-index="${idx}">✏️ ${t("editBtn")}</button><button class="branch-del-btn" type="button" style="background:rgba(220,53,69,.1);color:#dc3545;border:none;border-radius:var(--radius-sm);padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;" data-index="${idx}">🗑 ${t("deleteBtn")}</button></div>`;
+    card.innerHTML=`<div class="cust-header"><strong>${escapeHTML(b)}</strong></div><div style="display:flex;gap:8px;margin-top:8px;"><button class="branch-edit-btn" type="button" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;" data-index="${idx}"><i data-lucide="pencil"></i>${t("editBtn")}</button><button class="branch-del-btn" type="button" style="display:inline-flex;align-items:center;gap:6px;background:rgba(220,53,69,.1);color:#dc3545;border:none;border-radius:var(--radius-sm);padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;" data-index="${idx}"><i data-lucide="trash-2"></i>${t("deleteBtn")}</button></div>`;
     card.querySelector(".branch-del-btn").addEventListener("click",function(){const br=getBranches();const i=parseInt(this.dataset.index);if(i>=0&&i<br.length){if(confirm(`Delete "${br[i]}"?`)){br.splice(i,1);saveBranches(br);renderBranches();}}});
     card.querySelector(".branch-edit-btn").addEventListener("click",function(){openBranchRenameModal(parseInt(this.dataset.index));});
     list.appendChild(card);
@@ -772,7 +772,7 @@ function renderCategories(){
     const hasDesc=!!meta.desc;
     const showDesc=meta.showDesc!==false;
     const card=document.createElement("div");card.className="cat-admin-card";
-    card.innerHTML=`<div style="flex:1;min-width:0;"><div class="cat-admin-name">${escapeHTML(dispName)}</div>${hasDesc?`<div class="cat-admin-desc" style="display:${showDesc?'':'none'}">${escapeHTML(meta.desc)}</div>`:""}</div><span class="cat-admin-count">(${count})</span><div class="cat-admin-actions"><button class="cat-rename-btn" type="button">${t("renameCategory")}</button>${hasDesc?`<button class="cat-desc-toggle-btn" type="button">${showDesc?"👁️":"🙈"}</button>`:""}<button class="cat-del-btn" type="button">${t("deleteCategory")}</button></div>`;
+    card.innerHTML=`<div style="flex:1;min-width:0;"><div class="cat-admin-name">${escapeHTML(dispName)}</div>${hasDesc?`<div class="cat-admin-desc" style="display:${showDesc?'':'none'}">${escapeHTML(meta.desc)}</div>`:""}</div><span class="cat-admin-count">(${count})</span><div class="cat-admin-actions"><button class="cat-rename-btn" type="button">${t("renameCategory")}</button>${hasDesc?`<button class="cat-desc-toggle-btn" type="button" title="${showDesc?"Hide":"Show"} description"><i data-lucide="${showDesc?"eye":"eye-off"}"></i></button>`:""}<button class="cat-del-btn" type="button">${t("deleteCategory")}</button></div>`;
     card.querySelector(".cat-admin-name").addEventListener("click",()=>showCategoryProducts(cat));
     card.querySelector(".cat-rename-btn").addEventListener("click",e=>{e.stopPropagation();openRenameCatModal(cat);});
     card.querySelector(".cat-del-btn").addEventListener("click",e=>{e.stopPropagation();deleteCategory(cat);});
@@ -789,7 +789,7 @@ function showCategoryProducts(cat){
   const products=allProducts.filter(p=>p.category===cat);
   if(!prodList)return;
   prodList.innerHTML=products.length===0?`<div class='empty-msg'>${t("noProductsInCat")}</div>`:"";
-  products.forEach(p=>{prodList.insertAdjacentHTML("beforeend",`<div class="admin-product"><img src="${escapeHTML(getProductImage(p))}" alt="${escapeHTML(p.description||p.name||"")}" onerror="this.src='images/noimg.jpg'"><div class="admin-info"><h3>${escapeHTML(p.description||"")}</h3><p class="product-name-ar">${escapeHTML(p.name||"")}</p><p>SKU: ${escapeHTML(p.code||"")}</p></div><div class="admin-actions"><label class="inv-vis-toggle" title="Show in Inventory Store"><input type="checkbox" class="inv-vis-cb" data-id="${escapeHTML(p.id)}"${p.invVisible!==false?" checked":""}><span>👁</span></label><button class="edit-btn" type="button" onclick="editProduct('${escapeHTML(p.id)}')">${t("editBtn")}</button><button class="delete-btn" type="button" onclick="deleteProduct('${escapeHTML(p.id)}')">${t("deleteBtn")}</button></div></div>`);});
+  products.forEach(p=>{prodList.insertAdjacentHTML("beforeend",`<div class="admin-product"><img src="${escapeHTML(getProductImage(p))}" alt="${escapeHTML(p.description||p.name||"")}" onerror="this.src='images/noimg.jpg'"><div class="admin-info"><h3>${escapeHTML(p.description||"")}</h3><p class="product-name-ar">${escapeHTML(p.name||"")}</p><p>SKU: ${escapeHTML(p.code||"")}</p></div><div class="admin-actions"><label class="inv-vis-toggle" title="Show in Inventory Store"><input type="checkbox" class="inv-vis-cb" data-id="${escapeHTML(p.id)}"${p.invVisible!==false?" checked":""}><i data-lucide="eye"></i></label><button class="edit-btn" type="button" onclick="editProduct('${escapeHTML(p.id)}')"><i data-lucide="pencil"></i>${t("editBtn")}</button><button class="delete-btn" type="button" onclick="deleteProduct('${escapeHTML(p.id)}')"><i data-lucide="trash-2"></i>${t("deleteBtn")}</button></div></div>`);});
   prodList.querySelectorAll(".inv-vis-cb").forEach(cb => {
     cb.addEventListener("change", function(){
       const id = this.dataset.id;
@@ -830,22 +830,22 @@ function applyAdminLang(){
   document.documentElement.lang = lang;
   document.documentElement.dir = isEn ? "ltr" : "rtl";
   const btn = document.getElementById("adminLangToggle");
-  if(btn) btn.textContent = isEn ? "🌐 عربي" : "🌐 EN";
+  if(btn) setLabel(btn, isEn ? "عربي" : "EN");
   const logoutBtn = document.getElementById("adminLogoutBtn");
-  if(logoutBtn) logoutBtn.textContent = t("logout");
+  if(logoutBtn) setLabel(logoutBtn, t("logout"));
 
   // Admin profile
   const profDisplay=document.getElementById("adminProfileDisplay");
-  if(profDisplay)profDisplay.textContent=currentAdminData?`🔑 ${currentAdminData.username}`:"";
+  if(profDisplay)profDisplay.innerHTML=currentAdminData?`<i data-lucide="user-cog"></i> ${escapeHTML(currentAdminData.username)}`:"";
   const profEditBtn=document.getElementById("adminProfileEditBtn");
   const profEditSection=document.getElementById("adminProfileEditSection");
-  if(profEditBtn)profEditBtn.textContent="✏️";
+  if(profEditBtn)profEditBtn.innerHTML='<i data-lucide="pencil"></i>';
   const editUser=document.getElementById("adminEditProfileUser");
   if(editUser)editUser.placeholder=t("newUsername");
   const editPass=document.getElementById("adminEditProfilePass");
   if(editPass)editPass.placeholder=t("newPassword");
   const saveBtn=document.getElementById("adminSaveProfileBtn");
-  if(saveBtn)saveBtn.textContent=t("saveBtn")||"💾 حفظ";
+  if(saveBtn)setLabel(saveBtn,t("saveBtn")||"حفظ");
 
   // Admin login screen
   const loginH1 = document.querySelector("#adminLoginScreen h1");
@@ -853,16 +853,16 @@ function applyAdminLang(){
   const loginBtn = document.querySelector("#adminLoginForm button[type='submit']");
   if(loginH1) loginH1.textContent = t("adminLoginTitle");
   if(loginP) loginP.textContent = t("adminLoginSubtitle");
-  if(loginBtn) loginBtn.textContent = t("adminLoginBtn");
+  if(loginBtn) setLabel(loginBtn, t("adminLoginBtn"));
 
   // Tabs
   const tabs = document.querySelectorAll(".admin-tab");
   const tabKeys = ["productsTab","invoicesTab","customersTab","branchesTab","categoriesTab"];
   tabs.forEach((tab,i) => {
-    if(tabKeys[i]) tab.textContent = t(tabKeys[i]);
+    if(tabKeys[i]) setLabel(tab, t(tabKeys[i]));
     if(i===2){
       if(currentAdminPerms.canManageCustomers===false){
-        tab.innerHTML='🔒 '+(tab.textContent||t(tabKeys[i]));
+        tab.innerHTML=`<i data-lucide="lock"></i><span>${t(tabKeys[i])}</span>`;
         tab.style.opacity="0.5";
       }else{tab.style.opacity="1";}
     }
@@ -882,12 +882,12 @@ function applyAdminLang(){
   // Apply data-i18n translations
   document.querySelectorAll("[data-i18n]:not([data-i18n-cat])").forEach(el => {
     const k = el.getAttribute("data-i18n");
-    if(k && t(k) !== k) el.textContent = t(k);
+    if(k && t(k) !== k) setLabel(el, t(k));
   });
 
   // Product form
   const backBtn = document.getElementById("backToCategories");
-  if(backBtn) backBtn.textContent = t("backToCategories");
+  if(backBtn) setLabel(backBtn, t("backToCategories"));
   const addTitle = document.querySelector("#productFormSection h2");
   if(addTitle) addTitle.innerHTML = `${t("addProductTo")} <span id="selectedCategoryName" style="color:var(--accent);"></span>`;
   const ph = {name:"arabicName",description:"englishName",code:"productCode",image:"imageLink"};
@@ -896,7 +896,7 @@ function applyAdminLang(){
     if(el) el.placeholder = t(key);
   });
   const saveProductBtn = document.getElementById("save");
-  if(saveProductBtn) saveProductBtn.textContent = t("saveProduct");
+  if(saveProductBtn) setLabel(saveProductBtn, t("saveProduct"));
   const suggestCodeLabel=document.getElementById("suggestCodeLabel");
   if(suggestCodeLabel) suggestCodeLabel.textContent = t("suggestCode");
 
@@ -911,13 +911,13 @@ function applyAdminLang(){
 
   // Upload image label
   const uploadLabel = document.querySelector("label[for='imageFile']");
-  if(uploadLabel) uploadLabel.textContent = t("uploadImage");
+  if(uploadLabel) setLabel(uploadLabel, t("uploadImage"));
 
   // Import/Export Excel buttons
   const importBtn = document.getElementById("importExcel");
-  if(importBtn) importBtn.textContent = t("importExcelLabel");
+  if(importBtn) setLabel(importBtn, t("importExcelLabel"));
   const exportBtn = document.getElementById("exportExcel");
-  if(exportBtn) exportBtn.textContent = t("exportExcelLabel");
+  if(exportBtn) setLabel(exportBtn, t("exportExcelLabel"));
 
   // Bulk actions
   const selectAllLabel = document.getElementById("selectAllLabel");
@@ -928,15 +928,15 @@ function applyAdminLang(){
     if(defOpt) defOpt.textContent = t("bulkCategoryPlaceholder");
   }
   const bulkBtn = document.getElementById("bulkChangeCatBtn");
-  if(bulkBtn) bulkBtn.textContent = t("bulkChangeBtn");
+  if(bulkBtn) setLabel(bulkBtn, t("bulkChangeBtn"));
 
   // Categories section
   const catBackBtn = document.getElementById("backToCategoriesList");
-  if(catBackBtn) catBackBtn.textContent = t("catProductsBack");
+  if(catBackBtn) setLabel(catBackBtn, t("catProductsBack"));
   const catAddBtn = document.getElementById("addProductFromCat");
-  if(catAddBtn) catAddBtn.textContent = t("addProductToCat");
+  if(catAddBtn) setLabel(catAddBtn, t("addProductToCat"));
   const addNewCatBtn = document.getElementById("addNewCategoryBtn");
-  if(addNewCatBtn) addNewCatBtn.textContent = t("addNewCategory");
+  if(addNewCatBtn) setLabel(addNewCatBtn, t("addNewCategory"));
 
   // Category names in dynamic sections (e.g. customer permissions)
   document.querySelectorAll("[data-i18n-cat]").forEach(el => {
@@ -953,7 +953,7 @@ function applyAdminLang(){
   });
 
   // Products table buttons
-  document.querySelectorAll(".edit-btn").forEach(b => b.textContent = t("editBtn"));
+  document.querySelectorAll(".edit-btn").forEach(b => setLabel(b, t("editBtn")));
 
   // Delete modals
   const delCustTitle=document.getElementById("deleteCustTitle");
@@ -980,8 +980,8 @@ function applyAdminLang(){
   if(delInvConfirm)delInvConfirm.textContent=t("deleteConfirm");
   const delInvInput=document.getElementById("deleteInvoiceConfirmInput");
   if(delInvInput)delInvInput.placeholder=t("confirmDelete");
-  document.querySelectorAll(".delete-btn").forEach(b => b.textContent = t("deleteBtn"));
-  document.querySelectorAll(".edit-btn").forEach(b => b.textContent = t("editBtn"));
+  document.querySelectorAll(".delete-btn").forEach(b => setLabel(b, t("deleteBtn")));
+  document.querySelectorAll(".edit-btn").forEach(b => setLabel(b, t("editBtn")));
   document.querySelectorAll(".inv-toggle-btn").forEach(b => {
     const tbl = b.closest(".invoice-admin-card")?.querySelector(".inv-detail-table");
     b.textContent = tbl?.classList.contains("show") ? t("hideDetails") : t("showDetails");
@@ -1001,7 +1001,7 @@ function applyAdminLang(){
   const custPin = document.getElementById("newCustPin");
   if(custPin) custPin.placeholder = t("customerPin");
   const custBtn = document.getElementById("addCustBtn");
-  if(custBtn) custBtn.textContent = t("addCustomerBtn");
+  if(custBtn) setLabel(custBtn, t("addCustomerBtn"));
   const custSearch = document.getElementById("customerSearch");
   if(custSearch) custSearch.placeholder = t("searchCustomer");
 
@@ -1034,7 +1034,7 @@ function applyAdminLang(){
   const brName = document.getElementById("newBranchName");
   if(brName) brName.placeholder = t("branchName");
   const brBtn = document.getElementById("addBranchBtn");
-  if(brBtn) brBtn.textContent = t("addBranchBtn");
+  if(brBtn) setLabel(brBtn, t("addBranchBtn"));
 
   // Floating menu
   applyMenuLang();
@@ -1053,7 +1053,7 @@ function applyAdminLang(){
   // Update restriction message if shown
   const custSection = document.getElementById("section-customers");
   if(custSection && currentAdminPerms.canManageCustomers===false && loadedTabs.customers){
-    custSection.innerHTML=`<div style="text-align:center;padding:40px 20px;color:#dc3545;font-size:16px;font-weight:700;">🔒 ${t("noCustomerPerm")}</div>`;
+    custSection.innerHTML=`<div style="text-align:center;padding:40px 20px;color:#dc3545;font-size:16px;font-weight:700;"><i data-lucide="lock"></i> ${t("noCustomerPerm")}</div>`;
   }
 }
 getElement("adminLangToggle")?.addEventListener("click", () => {

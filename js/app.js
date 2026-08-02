@@ -63,6 +63,13 @@ function getCartTotalQty(){ return cart.reduce((sum,item) => sum + getItemQty(it
    ======================== */
 function refreshIcons(){ if(window.lucide && window.lucide.createIcons){ try{ window.lucide.createIcons(); }catch(e){} } }
 
+function syncHeaderHeight(){
+  const header = document.querySelector(".app-header");
+  if(!header) return;
+  const h = header.getBoundingClientRect().height;
+  document.body.style.setProperty("--v2-header-h", Math.round(h)+"px");
+}
+
 function v2Text(id, key){
   const el = document.getElementById(id);
   if(!el) return;
@@ -144,6 +151,7 @@ function applyLang(){
   refreshIcons();
 }
 document.getElementById("langToggle")?.addEventListener("click", () => {
+  closeDrawer();
   setLang(getLang() === "ar" ? "en" : "ar");
   applyLang();
 });
@@ -789,7 +797,7 @@ document.addEventListener("keydown", e => {
    ======================== */
 const appDrawer = document.getElementById("appDrawer");
 const appDrawerBackdrop = document.getElementById("appDrawerBackdrop");
-function openDrawer(){ appDrawer?.classList.add("open"); appDrawerBackdrop?.classList.add("open"); appDrawer?.setAttribute("aria-hidden","false"); }
+function openDrawer(){ syncHeaderHeight(); appDrawer?.classList.add("open"); appDrawerBackdrop?.classList.add("open"); appDrawer?.setAttribute("aria-hidden","false"); }
 function closeDrawer(){ appDrawer?.classList.remove("open"); appDrawerBackdrop?.classList.remove("open"); appDrawer?.setAttribute("aria-hidden","true"); }
 document.getElementById("menuBtn")?.addEventListener("click", openDrawer);
 document.getElementById("appDrawerClose")?.addEventListener("click", closeDrawer);
@@ -812,4 +820,6 @@ applyLang();
 updateCartCount();
 updateInventoryCartCount();
 loadSession();
+syncHeaderHeight();
+window.addEventListener("resize", syncHeaderHeight);
 (async function(){ await loadCategoriesFromFirestore(); loadProducts(); })();

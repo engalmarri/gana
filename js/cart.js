@@ -69,6 +69,7 @@ const invoiceDetailContent = document.getElementById("invoiceDetailContent");
 const cartMain = document.getElementById("cartMain");
 const loginRequiredOverlay = document.getElementById("loginRequiredOverlay");
 const cartCategoryFilter = document.getElementById("cartCategoryFilter");
+const invoiceProducts = document.getElementById("invoiceProducts");
 
 function escapeHTML(v){ return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;"); }
 function getItemQty(item){ const q=parseInt(item.qty,10); return isNaN(q)||q<1?1:q; }
@@ -268,7 +269,7 @@ const profileDropdown=document.getElementById("profileDropdown");
 profileToggle?.addEventListener("click",e=>{e.stopPropagation();profileDropdown?.classList.toggle("show");});
 document.addEventListener("click",e=>{if(profileDropdown?.classList.contains("show")&&!profileDropdown.contains(e.target)&&e.target!==profileToggle)profileDropdown.classList.remove("show");});
 document.getElementById("profileLogoutBtn")?.addEventListener("click",()=>{profileDropdown?.classList.remove("show");if(confirm("هل تريد تسجيل الخروج؟"))clearSession();});
-document.getElementById("profileTogglePin")?.addEventListener("click",()=>{const el=document.getElementById("profilePin");if(!el)return;if(el.textContent==="****"){el.textContent=currentCustomerPin||"N/A";document.getElementById("profileTogglePin").textContent="إخفاء";}else{el.textContent="****";document.getElementById("profileTogglePin").textContent="إظهار";}});
+document.getElementById("profileTogglePin")?.addEventListener("click",()=>{const el=document.getElementById("profilePin");if(!el)return;const lbl=document.getElementById("profileTogglePin")?.querySelector("span");if(el.textContent==="****"){el.textContent=currentCustomerPin||"N/A";if(lbl)lbl.textContent="إخفاء";}else{el.textContent="****";if(lbl)lbl.textContent="إظهار";}});
 document.getElementById("profileChangePinBtn")?.addEventListener("click",async()=>{profileDropdown?.classList.remove("show");const np=prompt("كلمة المرور الجديدة:");if(!np){alert("الرجاء إدخال كلمة المرور");return;}currentCustomerPin=np;const s=JSON.parse(localStorage.getItem(SESSION_KEY)||"{}");s.pin=np;localStorage.setItem(SESSION_KEY,JSON.stringify(s));try{const{doc:d,updateDoc}=await import("https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js");const{db:dbRef}=await import("./firebase.js");await updateDoc(d(dbRef,"customers",currentCustomer.id),{pin:np});}catch(e){}alert("تم تغيير كلمة المرور");});
 document.getElementById("profileInvoicesBtn")?.addEventListener("click",()=>{profileDropdown?.classList.remove("show");openInvoicesModal();});
 
@@ -282,7 +283,7 @@ async function loadCustomerInvoices(){
   if(snap.empty){invoicesList.innerHTML='<div class="empty-text">لا توجد فواتير</div>';return;}
   invoicesList.innerHTML="";
   snap.forEach(doc=>{const inv=doc.data();const div=document.createElement("div");div.className="invoice-history-card";
-  div.innerHTML=`<div class="invoice-history-top"><strong class="invoice-history-no">${escapeHTML(inv.branchName||inv.invoiceNo||"")}</strong><span class="invoice-history-date">${inv.date||""}</span></div><div class="invoice-history-items">${escapeHTML((inv.items||[]).slice(0,3).map(i=>i.name).join("، "))}</div><div class="invoice-history-footer" style="display:flex;justify-content:space-between;align-items:center;"><span>المنتجات: ${inv.totalItems||0} | الكمية: ${inv.totalQty||0}</span><button class="inv-pdf-btn" type="button" style="padding:4px 10px;border:none;border-radius:6px;background:rgba(220,53,69,.1);color:#dc3545;font-size:12px;font-weight:700;cursor:pointer;">📥 PDF</button></div>`;
+  div.innerHTML=`<div class="invoice-history-top"><strong class="invoice-history-no">${escapeHTML(inv.branchName||inv.invoiceNo||"")}</strong><span class="invoice-history-date">${inv.date||""}</span></div><div class="invoice-history-items">${escapeHTML((inv.items||[]).slice(0,3).map(i=>i.name).join("، "))}</div><div class="invoice-history-footer"><span>المنتجات: ${inv.totalItems||0} | الكمية: ${inv.totalQty||0}</span><button class="inv-pdf-btn" type="button"><i data-lucide="download"></i><span>PDF</span></button></div>`;
   div.querySelector(".inv-pdf-btn")?.addEventListener("click",e=>{e.stopPropagation();generateInvoicePdf(inv);});
   div.addEventListener("click",()=>openInvoiceDetail(inv));invoicesList.appendChild(div);});
   }catch(e){invoicesList.innerHTML='<div class="error-text">حدث خطأ</div>';}
@@ -342,7 +343,7 @@ function renderCart(){
     const pt=`${item.name||""} ${item.description||""} ${item.code||""}`.toLowerCase();
     if(sv&&!pt.includes(sv))return;
     vis++;
-    cartItems.insertAdjacentHTML("beforeend",`<div class="cart-item"><img src="${escapeHTML(getProductImage(item))}" alt="${escapeHTML(item.description||"")}" onerror="this.src='images/noimg.jpg'"><div class="info"><h3>${escapeHTML(item.description||"")}</h3><p class="product-name-ar">${escapeHTML(item.name||"")}</p><p style="font-size:12px;color:var(--card);">SKU: ${escapeHTML(item.code||"")} | ${escapeHTML(item.category||"")}</p><div class="qty-controls"><button type="button" data-action="decrease" data-id="${escapeHTML(item.id)}">-</button><input type="number" min="1" value="${getItemQty(item)}" class="qty-input" data-id="${escapeHTML(item.id)}"><button type="button" data-action="increase" data-id="${escapeHTML(item.id)}">+</button></div></div><button type="button" class="delete-cart-item" data-action="delete" data-id="${escapeHTML(item.id)}">🗑 ${t("deleteBtn")}</button></div>`);
+    cartItems.insertAdjacentHTML("beforeend",`<div class="cart-item"><img src="${escapeHTML(getProductImage(item))}" alt="${escapeHTML(item.description||"")}" onerror="this.src='images/noimg.jpg'"><div class="info"><h3>${escapeHTML(item.description||"")}</h3><p class="product-name-ar">${escapeHTML(item.name||"")}</p><p style="font-size:12px;color:var(--v2-text-muted);">SKU: ${escapeHTML(item.code||"")} | ${escapeHTML(item.category||"")}</p><div class="qty-controls"><button type="button" data-action="decrease" data-id="${escapeHTML(item.id)}" aria-label="-"><i data-lucide="minus"></i></button><input type="number" min="1" value="${getItemQty(item)}" class="qty-input" data-id="${escapeHTML(item.id)}"><button type="button" data-action="increase" data-id="${escapeHTML(item.id)}" aria-label="+"><i data-lucide="plus"></i></button></div></div><button type="button" class="delete-cart-item" data-action="delete" data-id="${escapeHTML(item.id)}"><i data-lucide="trash-2"></i><span>${t("deleteBtn")}</span></button></div>`);
   });
   if(cart.length===0)cartItems.innerHTML=`<div class="cart-item"><div class="info"><h3>${t("cartEmpty")}</h3></div></div>`;
   else if(vis===0)cartItems.innerHTML=`<div class="cart-item"><div class="info"><h3>${t("noResults")}</h3></div></div>`;
@@ -619,4 +620,4 @@ document.getElementById("invBlockGoInventory")?.addEventListener("click",()=>{ w
 
 applyLang();
 loadSession();
-(async function(){ await loadCategoriesFromFirestore(); populateBranchDropdown(); renderCart(); if(currentCustomer)await refreshCustomerFromFirestore(); })();
+(async function(){ await loadCategoriesFromFirestore(); renderCart(); if(currentCustomer)await refreshCustomerFromFirestore(); })();

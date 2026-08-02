@@ -104,6 +104,7 @@ const T = {
     menuAdminStats: "إحصائيات الطلبات",
     statsTitle: "إحصائيات الطلبات",
     statsPeriod: "الفترة",
+    statsPrintBtn: "طباعة PDF",
     statsWeek: "هذا الأسبوع",
     statsMonth: "هذا الشهر",
     stats3Months: "آخر 3 أشهر",
@@ -391,6 +392,7 @@ const T = {
     menuAdminStats: "Order Statistics",
     statsTitle: "Order Statistics",
     statsPeriod: "Period",
+    statsPrintBtn: "Print PDF",
     statsWeek: "This Week",
     statsMonth: "This Month",
     stats3Months: "Last 3 Months",
@@ -598,6 +600,13 @@ export function catLabel(catKey){
 }
 export function catImage(catKey){ const imgs = CAT_IMAGES[catKey]; if(!imgs) return null; return imgs[getLang()] || imgs.ar; }
 
+export function setLabel(el, text){
+  if(!el) return;
+  const s = el.querySelector("span");
+  if(s){ s.textContent = text; return; }
+  el.textContent = text;
+}
+
 export function applyMenuLang(){
   const lang = getLang();
   const isEn = lang === "en";
@@ -630,7 +639,7 @@ export function applyFullLang(selectors){
 
   if(selectors?.loginBtn){
     const el = document.getElementById(selectors.loginBtn);
-    if(el) el.innerHTML = t("login");
+    if(el) setLabel(el, t("login"));
   }
 
   if(selectors?.loginRequiredOverlay){
@@ -641,7 +650,7 @@ export function applyFullLang(selectors){
       const btn = ov.querySelector("button");
       if(h2) h2.textContent = t("welcomeMsg");
       if(p) p.textContent = t("welcomeSub");
-      if(btn) btn.textContent = t("loginBtnOverlay");
+      setLabel(btn, t("loginBtnOverlay"));
     }
   }
 
@@ -721,26 +730,23 @@ export function applyCartLang(){
     const obtn = overlay.querySelector("button");
     if(oh2) oh2.textContent = t("loginFirst");
     if(op) op.textContent = t("cartRequiredSub");
-    if(obtn) obtn.textContent = t("loginBtnOverlay");
+    setLabel(obtn, t("loginBtnOverlay"));
   }
 
   // Inventory block overlay
   document.querySelectorAll("#inventoryBlockOverlay [data-i18n]").forEach(el=>{
     const k = el.getAttribute("data-i18n");
-    if(k && t(k) !== k) el.textContent = t(k);
+    if(k && t(k) !== k) setLabel(el, t(k));
   });
 
   // Cart summary
   const summaryH2 = document.querySelector(".cart-summary h2");
   if(summaryH2) summaryH2.textContent = t("itemCount");
-  const createInv = document.getElementById("createInvoice");
-  if(createInv) createInv.textContent = t("createInvoice");
-  const whatsappBtn = document.getElementById("whatsappBtn");
-  if(whatsappBtn) whatsappBtn.textContent = t("whatsapp");
-  const clearCartBtn = document.getElementById("clearCartBtn");
-  if(clearCartBtn) clearCartBtn.textContent = t("clearCart");
+  setLabel(document.getElementById("createInvoice"), t("createInvoice"));
+  setLabel(document.getElementById("whatsappBtn"), t("whatsapp"));
+  setLabel(document.getElementById("clearCartBtn"), t("clearCart"));
   const backStore = document.querySelector(".cart-summary .back-btn");
-  if(backStore) backStore.textContent = t("backToStore");
+  if(backStore) setLabel(backStore, t("backToStore"));
 
   // Mobile cart elements
   document.querySelectorAll("#cartTopBar [data-i18n]").forEach(el=>{const k=el.getAttribute("data-i18n");if(k&&t(k)!==k)el.textContent=t(k);});
@@ -776,7 +782,7 @@ export function applyCartLang(){
   const pin = document.getElementById("loginPin");
   if(pin) pin.placeholder = t("pinPlaceholder");
   const subBtn = document.getElementById("loginSubmit");
-  if(subBtn) subBtn.textContent = t("submit");
+  if(subBtn) setLabel(subBtn, t("submit"));
 
   // Profile
   applyFullLang({ profile: true });
@@ -784,8 +790,7 @@ export function applyCartLang(){
   // Invoices modal
   const invH2 = document.querySelector("#invoicesModal h2");
   if(invH2) invH2.textContent = t("myInvoicesTitle");
-  const invClose = document.getElementById("invoicesCloseBtn");
-  if(invClose) invClose.textContent = t("close");
+  setLabel(document.getElementById("invoicesCloseBtn"), t("close"));
 
   // Clear cart modal
   const ccH3 = document.querySelector("#clearCartConfirmModal h3");
@@ -794,19 +799,19 @@ export function applyCartLang(){
   const ccConfirm = document.getElementById("confirmClearCart");
   if(ccH3) ccH3.textContent = t("confirmDeleteCart");
   if(ccP) ccP.textContent = t("confirmDeleteCartMsg");
-  if(ccCancel) ccCancel.textContent = t("cancel");
-  if(ccConfirm) ccConfirm.textContent = t("delete");
+  setLabel(ccCancel, t("cancel"));
+  setLabel(ccConfirm, t("delete"));
 
   // Header profile dropdown
   const ddItems = document.querySelectorAll("#profileDropdown .profile-dropdown-item");
   if(ddItems[0]){ const s = ddItems[0].querySelector("strong"); if(s) s.textContent = t("name"); }
   if(ddItems[1]){ const s = ddItems[1].querySelector("strong"); if(s) s.textContent = t("type"); }
-  if(ddItems[3]){ const b = ddItems[3].querySelector("button"); if(b) b.textContent = t("changePin"); }
-  if(ddItems[4]){ const b = ddItems[4].querySelector("button"); if(b) b.textContent = t("myInvoices"); }
-  if(ddItems[5]){ const b = ddItems[5].querySelector("button"); if(b) b.textContent = t("logout"); }
+  if(ddItems[3]){ const b = ddItems[3].querySelector("button"); if(b) setLabel(b, t("changePin")); }
+  if(ddItems[4]){ const b = ddItems[4].querySelector("button"); if(b) setLabel(b, t("myInvoices")); }
+  if(ddItems[5]){ const b = ddItems[5].querySelector("button"); if(b) setLabel(b, t("logout")); }
   const profileTogglePin = document.getElementById("profileTogglePin");
   if(profileTogglePin){
     const el = document.getElementById("profilePin");
-    if(el) profileTogglePin.textContent = el.textContent === "****" ? t("show") : t("hide");
+    setLabel(profileTogglePin, el.textContent === "****" ? t("show") : t("hide"));
   }
 }

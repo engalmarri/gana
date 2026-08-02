@@ -1,5 +1,5 @@
 import { db } from "./firebase.js";
-import { getLang, setLang, t, catLabel } from "./i18n.js";
+import { getLang, setLang, t, catLabel, setLabel } from "./i18n.js";
 import {
   collection, getDocs, query, orderBy, where
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
@@ -182,7 +182,9 @@ function renderBranchChips(){
 
 function applyLang(){
   const lang = getLang();
-  document.getElementById("statsTitle").textContent = "📊 " + t("statsTitle");
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "en" ? "ltr" : "rtl";
+  document.getElementById("statsTitle").textContent = t("statsTitle");
   document.getElementById("cardInvoicesLabel").textContent = t("statsTotalInvoices");
   document.getElementById("cardQtyLabel").textContent = t("statsTotalQty");
   document.getElementById("cardProductsLabel").textContent = t("statsDistinctProducts");
@@ -194,7 +196,9 @@ function applyLang(){
   document.querySelectorAll("#periodChips [data-i18n]").forEach(el=>{ el.textContent = t(el.getAttribute("data-i18n")); });
   document.querySelectorAll("#customRange [data-i18n]").forEach(el=>{ el.textContent = t(el.getAttribute("data-i18n")); });
   const lt = document.getElementById("statsLangToggle");
-  if(lt) lt.textContent = lang === "en" ? "🌐 عربي" : "🌐 EN";
+  if(lt) setLabel(lt, lang === "en" ? "عربي" : "EN");
+  const pb = document.getElementById("statsPrintBtn");
+  if(pb) setLabel(pb, t("statsPrintBtn") || "طباعة PDF");
   renderBranchChips();
   render();
 }
