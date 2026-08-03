@@ -6,7 +6,7 @@
   <title>سلة المشتريات - سمسم</title>
   <link rel="icon" type="image/png" href="images/icon.png">
   <link rel="stylesheet" href="css/style.css?v=20260714-2">
-  <link rel="stylesheet" href="css/app.css?v=20260802">
+  <link rel="stylesheet" href="css/app.css?v=20260803">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -132,6 +132,7 @@
       <h2>عدد المنتجات</h2>
       <span id="cartTotal">0</span>
       <button id="createInvoice" type="button"><i data-lucide="file-text"></i><span>إنشاء فاتورة</span></button>
+      <button id="printInventoryReport" type="button" style="margin-top:10px;"><i data-lucide="clipboard-list"></i><span>طباعة فاتورة الجرد</span></button>
       <button id="whatsappBtn" type="button" style="margin-top:10px;"><i data-lucide="message-circle"></i><span>واتساب</span></button>
       <button id="clearCartBtn" class="clear-cart-btn" type="button" style="margin-top:10px;"><i data-lucide="trash-2"></i><span>حذف جميع المحتويات</span></button>
     </aside>
@@ -147,6 +148,7 @@
       <h2><span data-i18n="createInvoice">إنشاء فاتورة</span></h2>
       <p class="modal-subtitle"><span data-i18n="totalQty">عدد المنتجات</span>: <strong id="invoiceModalTotal">0</strong></p>
       <button id="createInvoiceMobile" class="btn-primary" type="button" style="width:100%;"><i data-lucide="file-text"></i><span data-i18n="createInvoice">إنشاء فاتورة</span></button>
+      <button id="printInventoryReportMobile" type="button" style="width:100%;margin-top:10px;padding:10px;border-radius:var(--v2-radius);background:#4B5563;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;"><i data-lucide="clipboard-list"></i><span data-i18n="printInventoryReport">طباعة فاتورة الجرد</span></button>
       <button id="whatsappMobile" type="button" style="width:100%;margin-top:10px;padding:10px;border-radius:var(--v2-radius);background:#25D366;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;"><i data-lucide="message-circle"></i><span data-i18n="whatsapp">واتساب</span></button>
     </div>
   </div>
@@ -247,7 +249,7 @@
     </div>
   </div>
 
-  <script type="module" src="js/chrome.js?v=20260802"></script>
-  <script type="module" src="js/cart.js?v=20260802"></script>
+  <script type="module" src="js/chrome.js?v=20260803"></script>
+  <script type="module" src="js/cart.js?v=20260803"></script>
 </body>
 </html>
