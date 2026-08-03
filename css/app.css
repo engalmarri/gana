@@ -892,16 +892,22 @@ html[lang="en"] .app-v2{ font-family:var(--v2-font-en); }
   color:#fff; font-size:26px; font-weight:900;
   margin-bottom:14px;
 }
-.app-v2 .cart-summary button{
+.app-v2 .cart-summary button,
+.app-v2 .cart-summary #createInvoice,
+.app-v2 .cart-summary #whatsappBtn,
+.app-v2 .cart-summary #clearCartBtn{
   width:100%;
   display:flex; align-items:center; justify-content:center; gap:8px;
-  padding:13px;
+  padding:10px;
   border-radius:var(--v2-radius);
-  font-size:14px; font-weight:800;
+  font-size:13px; font-weight:800;
   cursor:pointer;
   transition:filter var(--v2-t-fast),opacity var(--v2-t-fast);
 }
-.app-v2 .cart-summary button svg{ width:18px; height:18px; }
+.app-v2 .cart-summary button svg{ width:16px; height:16px; }
+.app-v2 .cart-summary button span{
+  display:inline; font-size:13px; font-weight:800; color:inherit; margin:0; text-align:center;
+}
 .app-v2 .cart-summary #createInvoice{ background:var(--v2-primary); color:#fff; box-shadow:0 6px 16px rgba(79,70,229,.28); }
 .app-v2 .cart-summary #createInvoice:hover{ background:var(--v2-primary-hover); }
 .app-v2 .cart-summary #whatsappBtn{ background:#25D366; color:#fff; }
