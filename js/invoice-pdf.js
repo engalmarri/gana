@@ -196,10 +196,10 @@ export async function generateInvoicePdf(invoiceData) {
     renderRowsInto(rows.slice(start, best), tbody);
     setFooterVisible(best === rows.length);
     const canvas = await html2canvas(template, {
-      scale: 2, useCORS: true, backgroundColor: "#ffffff",
+      scale: 1.3, useCORS: true, backgroundColor: "#ffffff",
       windowWidth: template.scrollWidth, windowHeight: template.scrollHeight
     });
-    const imgD = canvas.toDataURL("image/png");
+    const imgD = canvas.toDataURL("image/jpeg", 0.85);
     const imgH = Math.min((canvas.height * A4_W) / canvas.width, A4_H);
     if (pageIdx > 0) doc.addPage();
     doc.addImage(imgD, "PNG", 0, 0, A4_W, imgH);

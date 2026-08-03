@@ -1,5 +1,6 @@
 import { db } from "./firebase.js";
-import { generateInvoicePdf } from "./invoice-pdf.js";
+import { generateInvoicePdf } from "./invoice-pdf.js?v=20260803";
+import { generateInventoryReportPdf } from "./native-pdf.js?v=20260803";
 import {
   collection, addDoc, getDoc, getDocs, updateDoc, doc,
   query, where, orderBy, serverTimestamp, Timestamp
@@ -562,6 +563,86 @@ async function createInvoice(){
   await saveInvoiceToFirestore(no,currentCustomer.name);
 }
 
+/* === Branch Products Monitoring (Inventory) Report === */
+async function generateInventoryReport(){
+  if(!currentCustomer){
+    alert(t("loginFirst") || "Login first");
+    openLoginModal();
+    return;
+  }
+  try {
+    const allProducts = await loadAllProducts();
+    const dateStr = formatInvoiceDate();
+    const lang = getLang();
+    const labels = {
+      rptTitleAr: t("rptTitleAr"),
+      rptTitleEn: t("rptTitleEn"),
+      rptColNoAr: t("rptColNoAr"),
+      rptColNoEn: t("rptColNoEn"),
+      rptColProductAr: t("rptColProductAr"),
+      rptColProductEn: t("rptColProductEn"),
+      rptColRequestedAr: t("rptColRequestedAr"),
+      rptColRequestedEn: t("rptColRequestedEn"),
+      rptColDeliveredAr: t("rptColDeliveredAr"),
+      rptColDeliveredEn: t("rptColDeliveredEn"),
+      rptColAvailableAr: t("rptColAvailableAr"),
+      rptColAvailableEn: t("rptColAvailableEn"),
+      rptColExpiredAr: t("rptColExpiredAr"),
+      rptColExpiredEn: t("rptColExpiredEn"),
+      rptColNoExpiryAr: t("rptColNoExpiryAr"),
+      rptColNoExpiryEn: t("rptColNoExpiryEn"),
+      rptColNearExpiryAr: t("rptColNearExpiryAr"),
+      rptColNearExpiryEn: t("rptColNearExpiryEn"),
+      rptDeliveryDateAr: t("rptDeliveryDateAr"),
+      rptDeliveryDateEn: t("rptDeliveryDateEn"),
+      rptBranchMgrAr: t("rptBranchMgrAr"),
+      rptBranchMgrEn: t("rptBranchMgrEn"),
+      rptBranchInspAr: t("rptBranchInspAr"),
+      rptBranchInspEn: t("rptBranchInspEn"),
+      rptSignatureAr: t("rptSignatureAr"),
+      rptSignatureEn: t("rptSignatureEn"),
+      rptOrderDateAr: t("rptOrderDateAr"),
+      rptOrderDateEn: t("rptOrderDateEn"),
+      rptUserAr: t("rptUserAr"),
+      rptUserEn: t("rptUserEn"),
+      rptBranchAr: t("rptBranchAr"),
+      rptBranchEn: t("rptBranchEn"),
+      rptNoProducts: t("rptNoProducts"),
+    };
+    const result = await generateInventoryReportPdf({
+      lang,
+      labels,
+      cart: cart.map(c => ({
+        id: c.id,
+        name: c.name || "",
+        description: c.description || "",
+        qty: c.qty || 0,
+        category: c.category || "Other",
+      })),
+      products: (allProducts || []).map(p => ({
+        id: p.id,
+        name: p.name || "",
+        description: p.description || "",
+        nameEn: p.nameEn || "",
+        category: p.category || "Other",
+        code: p.code || "",
+      })),
+      customer: {
+        name: currentCustomer.name || "",
+        branch: currentCustomer.branch || "",
+        accountType: currentCustomer.accountType || "",
+      },
+      dateStr,
+    });
+    if(window.SIMSIM_LOGO_URL === undefined) window.SIMSIM_LOGO_URL = "images/logo.png";
+  } catch (e) {
+    console.error("Inventory report failed:", e);
+    alert("Error generating inventory report: " + (e && e.message || e));
+  }
+}
+window.generateInventoryReport = generateInventoryReport;
+
+window.SIMSIM_LOGO_URL = "images/logo.png";
 /* EVENTS */
 if(cartItems){
   cartItems.addEventListener("click",e=>{const b=e.target.closest("button[data-action]");if(!b)return;const{action,id}=b.dataset;if(action==="increase")increaseQty(id);if(action==="decrease")decreaseQty(id);if(action==="delete")deleteItem(id);});
@@ -569,6 +650,7 @@ if(cartItems){
 }
 if(cartSearch)cartSearch.addEventListener("input",renderCart);
 if(createInvoiceButton)createInvoiceButton.addEventListener("click",createInvoice);
+document.getElementById("printInventoryReport")?.addEventListener("click",generateInventoryReport);
 document.getElementById("whatsappBtn")?.addEventListener("click",()=>window.open("https://chat.whatsapp.com/FQJrlGGpUNoJZUmAv4Eetd?s=sw&p=a&ilr=4","_blank"));
 if(clearCartButton)clearCartButton.addEventListener("click",openClearCartModal);
 
@@ -577,6 +659,7 @@ const invoiceFab=document.getElementById("invoiceFab");
 const invoiceModal=document.getElementById("invoiceModal");
 const invoiceModalClose=document.getElementById("invoiceModalClose");
 const createInvoiceMobile=document.getElementById("createInvoiceMobile");
+const printInventoryReportMobile=document.getElementById("printInventoryReportMobile");
 const whatsappMobile=document.getElementById("whatsappMobile");
 const clearCartTopBtn=document.getElementById("clearCartTopBtn");
 
@@ -586,6 +669,7 @@ invoiceFab?.addEventListener("click",openInvoiceModal);
 invoiceModalClose?.addEventListener("click",closeInvoiceModal);
 invoiceModal?.addEventListener("click",e=>{if(e.target===invoiceModal)closeInvoiceModal();});
 createInvoiceMobile?.addEventListener("click",()=>{closeInvoiceModal();createInvoice();});
+printInventoryReportMobile?.addEventListener("click",()=>{closeInvoiceModal();generateInventoryReport();});
 whatsappMobile?.addEventListener("click",()=>window.open("https://chat.whatsapp.com/FQJrlGGpUNoJZUmAv4Eetd?s=sw&p=a&ilr=4","_blank"));
 clearCartTopBtn?.addEventListener("click",openClearCartModal);
 if(confirmClearInput&&confirmClearCartButton){confirmClearInput.addEventListener("input",()=>{confirmClearCartButton.disabled=!isClearCartConfirmed();});confirmClearInput.addEventListener("keydown",e=>{if(e.key==="Enter"&&isClearCartConfirmed())clearCart();});}
