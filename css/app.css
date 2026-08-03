@@ -223,7 +223,7 @@ html[lang="en"] .app-v2{ font-family:var(--v2-font-en); }
 .app-v2 .app-drawer{
   position:fixed;
   top:var(--v2-header-h,61px);
-  inset-inline-start:0;
+  left:0;
   z-index:var(--v2-z-drawer);
   width:min(300px,85vw);
   height:calc(100vh - var(--v2-header-h,61px));
@@ -233,12 +233,17 @@ html[lang="en"] .app-v2{ font-family:var(--v2-font-en); }
   box-shadow:var(--v2-shadow-lg);
   display:flex;
   flex-direction:column;
+  visibility:hidden;
   transform:translateX(-100%);
-  transition:transform var(--v2-t);
+  transition:transform var(--v2-t),visibility 0s linear var(--v2-t);
 }
-[dir="rtl"] .app-v2 .app-drawer{ transform:translateX(100%); }
-[dir="ltr"] .app-v2 .app-drawer{ transform:translateX(-100%); }
-.app-v2 .app-drawer.open{ transform:translateX(0) !important; }
+[dir="rtl"] .app-v2 .app-drawer{ right:0; left:auto; transform:translateX(100%); }
+[dir="ltr"] .app-v2 .app-drawer{ left:0; right:auto; transform:translateX(-100%); }
+.app-v2 .app-drawer.open{
+  transform:translateX(0) !important;
+  visibility:visible;
+  transition:transform var(--v2-t),visibility 0s linear;
+}
 
 .app-v2 .app-drawer__header{
   display:flex; align-items:center; justify-content:space-between;
