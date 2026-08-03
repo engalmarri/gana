@@ -899,6 +899,7 @@ html[lang="en"] .app-v2{ font-family:var(--v2-font-en); }
 }
 .app-v2 .cart-summary button,
 .app-v2 .cart-summary #createInvoice,
+.app-v2 .cart-summary #printInventoryReport,
 .app-v2 .cart-summary #whatsappBtn,
 .app-v2 .cart-summary #clearCartBtn{
   width:100%;
@@ -915,6 +916,8 @@ html[lang="en"] .app-v2{ font-family:var(--v2-font-en); }
 }
 .app-v2 .cart-summary #createInvoice{ background:var(--v2-primary); color:#fff; box-shadow:0 6px 16px rgba(79,70,229,.28); }
 .app-v2 .cart-summary #createInvoice:hover{ background:var(--v2-primary-hover); }
+.app-v2 .cart-summary #printInventoryReport{ background:#4B5563; color:#fff; }
+.app-v2 .cart-summary #printInventoryReport:hover{ background:#374151; }
 .app-v2 .cart-summary #whatsappBtn{ background:#25D366; color:#fff; }
 .app-v2 .cart-summary #whatsappBtn:hover{ filter:brightness(.95); }
 .app-v2 .cart-summary #clearCartBtn{ background:var(--v2-danger); color:#fff; }
