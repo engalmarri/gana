@@ -577,8 +577,11 @@ async function generateInventoryReport(){
     const labels = {
       rptTitleAr: t("rptTitleAr"),
       rptTitleEn: t("rptTitleEn"),
+      rptSubHeaderEn: t("rptSubHeaderEn"),
       rptColNoAr: t("rptColNoAr"),
       rptColNoEn: t("rptColNoEn"),
+      rptColCategoryAr: t("rptColCategoryAr"),
+      rptColCategoryEn: t("rptColCategoryEn"),
       rptColProductAr: t("rptColProductAr"),
       rptColProductEn: t("rptColProductEn"),
       rptColRequestedAr: t("rptColRequestedAr"),
