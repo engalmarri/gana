@@ -43,7 +43,7 @@ const RH_PRODUCT   = 8;    // product row
 // Heights for the page-level blocks
 const HEADER_FIRST_H = 28;  // logo + titles + meta strip (first page only)
 const HEADER_SUB_H = 12;    // tiny header on subsequent pages
-const FOOTER_BAND_H = 40;   // delivery date + signature block (last page)
+const FOOTER_BAND_H = 46;   // delivery date + signature block (last page)
 
 // Inventory input-box dimensions (fits inside the 18mm numeric columns)
 const INPUT_BOX_W = 16;
@@ -78,6 +78,151 @@ function loadFonts(){
     return { reg, bold };
   })();
   return _fontsReady;
+}
+
+// ---------- Arabic shaping ----------
+//
+// The embedded Tajawal TTF ships the *connected* presentation forms
+// (initial/medial/final) but omits the isolated presentation forms (and the
+// Persian letters).  PDF readers render the stored glyphs as-is — they do
+// NOT apply OpenType GSUB at PDF-view time — so unshaped Arabic would appear
+// as disconnected isolated letters.  We therefore pre-shape every Arabic run
+// to presentation forms (falling back to the base letter for the isolated
+// form, whose outline is identical) and reverse the run for RTL display.
+
+const AR_JOIN = {
+  // [baseChar, initial, medial, final] — the isolated form is the base char
+  0x0621: [0x0621, null, null, null],
+  0x0622: [0x0622, null, null, 0xFE82],
+  0x0623: [0x0623, null, null, 0xFE84],
+  0x0624: [0x0624, null, null, 0xFE86],
+  0x0625: [0x0625, null, null, 0xFE88],
+  0x0626: [0x0626, 0xFE8B, 0xFE8C, 0xFE8A],
+  0x0627: [0x0627, null, null, 0xFE8E],
+  0x0628: [0x0628, 0xFE91, 0xFE92, 0xFE90],
+  0x0629: [0x0629, null, null, 0xFE94],
+  0x062A: [0x062A, 0xFE97, 0xFE98, 0xFE96],
+  0x062B: [0x062B, 0xFE9B, 0xFE9C, 0xFE9A],
+  0x062C: [0x062C, 0xFE9F, 0xFEA0, 0xFE9E],
+  0x062D: [0x062D, 0xFEA3, 0xFEA4, 0xFEA2],
+  0x062E: [0x062E, 0xFEA7, 0xFEA8, 0xFEA6],
+  0x062F: [0x062F, null, null, 0xFEAA],
+  0x0630: [0x0630, null, null, 0xFEAC],
+  0x0631: [0x0631, null, null, 0xFEAE],
+  0x0632: [0x0632, null, null, 0xFEB0],
+  0x0633: [0x0633, 0xFEB3, 0xFEB4, 0xFEB2],
+  0x0634: [0x0634, 0xFEB7, 0xFEB8, 0xFEB6],
+  0x0635: [0x0635, 0xFEBB, 0xFEBC, 0xFEBA],
+  0x0636: [0x0636, 0xFEBF, 0xFEC0, 0xFEBE],
+  0x0637: [0x0637, 0xFEC3, 0xFEC4, 0xFEC2],
+  0x0638: [0x0638, 0xFEC7, 0xFEC8, 0xFEC6],
+  0x0639: [0x0639, 0xFECB, 0xFECC, 0xFECA],
+  0x063A: [0x063A, 0xFECF, 0xFED0, 0xFECE],
+  0x0640: [0x0640, 0x0640, 0x0640, 0x0640],
+  0x0641: [0x0641, 0xFED3, 0xFED4, 0xFED2],
+  0x0642: [0x0642, 0xFED7, 0xFED8, 0xFED6],
+  0x0643: [0x0643, 0xFEDB, 0xFEDC, 0xFEDA],
+  0x0644: [0x0644, 0xFEDF, 0xFEE0, 0xFEDE],
+  0x0645: [0x0645, 0xFEE3, 0xFEE4, 0xFEE2],
+  0x0646: [0x0646, 0xFEE7, 0xFEE8, 0xFEE6],
+  0x0647: [0x0647, 0xFEEB, 0xFEEC, 0xFEEA],
+  0x0648: [0x0648, null, null, 0xFEEE],
+  0x0649: [0x0649, 0xFBE8, 0xFBE9, 0x0649], // final FBFD absent in Tajawal -> base
+  0x064A: [0x064A, 0xFEF3, 0xFEF4, 0xFEF2],
+};
+const AR_COMB = [
+  [[0x0644, 0x0622], 0xFEF5, 0xFEF6], // LAM_ALEF_MADDA
+  [[0x0644, 0x0623], 0xFEF7, 0xFEF8], // LAM_ALEF_HAMZA_ABOVE
+  [[0x0644, 0x0625], 0xFEF9, 0xFEFA], // LAM_ALEF_HAMZA_BELOW
+  [[0x0644, 0x0627], 0xFEFB, 0xFEFC], // LAM_ALEF
+];
+const AR_TRANSPARENT = new Set([
+  0x064B, 0x064C, 0x064D, 0x064E, 0x064F, 0x0650, 0x0651, 0x0652,
+  0x0653, 0x0654, 0x0655, 0x0656, 0x0657, 0x0658, 0x0670,
+]);
+const AR_PERSIAN = { 0x067E: 0x0628, 0x0686: 0x062C, 0x0698: 0x0632, 0x06AF: 0x0643, 0x06A9: 0x0643, 0x06CC: 0x064A };
+
+function isArabicCode(c){
+  if(c >= 0x0660 && c <= 0x0669) return false; // Arabic-Indic digits stay numeric
+  return (c >= 0x0600 && c <= 0x06FF) || (c >= 0x0750 && c <= 0x077F) ||
+         (c >= 0x08A0 && c <= 0x08FF) || (c >= 0xFB50 && c <= 0xFDFF) ||
+         (c >= 0xFE70 && c <= 0xFEFF);
+}
+
+function shapeArabicRun(str){
+  let out = "";
+  for(let i = 0; i < str.length; i++){
+    let cc = str.charCodeAt(i);
+    if(AR_PERSIAN[cc]) cc = AR_PERSIAN[cc];
+    const rep = AR_JOIN[cc];
+    if(!rep){ out += String.fromCharCode(cc); continue; }
+
+    let p = i - 1;
+    while(p >= 0 && AR_TRANSPARENT.has(str.charCodeAt(p))) p--;
+    let prev = null;
+    if(p >= 0){
+      let pc = str.charCodeAt(p);
+      if(AR_PERSIAN[pc]) pc = AR_PERSIAN[pc];
+      const pre = AR_JOIN[pc];
+      if(pre && (pre[1] !== null || pre[2] !== null)) prev = pc;
+    }
+
+    let n = i + 1;
+    while(n < str.length && AR_TRANSPARENT.has(str.charCodeAt(n))) n++;
+    let next = null;
+    if(n < str.length){
+      let nc = str.charCodeAt(n);
+      if(AR_PERSIAN[nc]) nc = AR_PERSIAN[nc];
+      const nre = AR_JOIN[nc];
+      if(nre && (nre[2] !== null || nre[3] !== null)) next = nc;
+    }
+
+    // Lam-Alef ligatures
+    if(cc === 0x0644 && next !== null && (next === 0x0622 || next === 0x0623 || next === 0x0625 || next === 0x0627)){
+      const combo = AR_COMB.find(c => c[0][0] === cc && c[0][1] === next);
+      if(combo){
+        out += String.fromCharCode(prev !== null ? combo[2] : combo[1]);
+        i++;
+        continue;
+      }
+    }
+
+    if(prev !== null && next !== null && rep[2] !== null){
+      out += String.fromCharCode(rep[2]); // medial
+    } else if(prev !== null && rep[3] !== null){
+      out += String.fromCharCode(rep[3]); // final
+    } else if(next !== null && rep[1] !== null){
+      out += String.fromCharCode(rep[1]); // initial
+    } else {
+      out += String.fromCharCode(cc); // isolated -> base char
+    }
+  }
+  return out;
+}
+
+// Convert logical-order mixed text into a LTR visual string for jsPDF.
+function arabicToDisplay(text){
+  if(!text) return text;
+  text = String(text);
+  if(!/[\u0600-\u06FF]/.test(text)) return text;
+
+  const runs = [];
+  let cur = "", curAr = null;
+  for(const ch of text){
+    const ar = isArabicCode(ch.codePointAt(0));
+    if(curAr === null){ curAr = ar; cur = ch; }
+    else if(ar === curAr){ cur += ch; }
+    else { runs.push({ text: cur, ar: curAr }); cur = ch; curAr = ar; }
+  }
+  runs.push({ text: cur, ar: curAr });
+
+  const shaped = runs.map(r => {
+    if(!r.ar) return r.text;
+    const shaped = shapeArabicRun(r.text);
+    return Array.from(shaped).reverse().join("");
+  });
+  shaped.reverse();
+  return shaped.join("");
 }
 
 // ---------- Helpers ----------
@@ -132,7 +277,13 @@ function line(doc, x1, y1, x2, y2){
 }
 
 // Write Latin text using the embedded Tajawal font (it covers Latin too).
+// If the string actually contains Arabic, route it through the shaping
+// pipeline so stray Arabic (e.g. unmapped category names) still renders
+// correctly joined and in RTL order.
 function textLatin(doc, str, x, y, opts){
+  if(str && /[\u0600-\u06FF]/.test(String(str))){
+    return textArabic(doc, str, x, y, opts);
+  }
   opts = opts || {};
   const style = opts.bold ? "bold" : "normal";
   doc.setFont(FONT_FAMILY, style);
@@ -141,19 +292,26 @@ function textLatin(doc, str, x, y, opts){
   doc.text(str, x, y, { align: opts.align || "left" });
 }
 
-// Write Arabic text using Tajawal.  We pass the string UNSHAPED in logical
-// order; the font's GSUB table (OpenType layout) at render time will
-// substitute the correct presentation forms (initial / medial / final /
-// isolated).  jsPDF draws LTR — the PDF reader applies RTL bidi to mirror
-// the visual order, so a string like "منتج 5" displays as "5 منتج".
+// Write Arabic text using Tajawal.  The string is pre-shaped to presentation
+// forms and reversed (see arabicToDisplay) so that every PDF reader — which
+// renders stored glyphs without applying GSUB — displays correctly joined
+// Arabic in the right visual order.
 function textArabic(doc, str, x, y, opts){
   opts = opts || {};
   if(!str) return;
+  const shaped = arabicToDisplay(str);
   const style = opts.bold ? "bold" : "normal";
   doc.setFont(FONT_FAMILY, style);
   doc.setFontSize(opts.size || 10);
   setRgb(doc, opts.color || "text");
-  doc.text(str, x, y, { align: opts.align || "right" });
+  doc.text(shaped, x, y, { align: opts.align || "right" });
+}
+
+// Arabic width measurement (shaped form has the real glyph widths).
+function arabicWidth(doc, str, size, bold){
+  doc.setFont(FONT_FAMILY, bold ? "bold" : "normal");
+  doc.setFontSize(size);
+  return doc.getTextWidth(arabicToDisplay(str));
 }
 
 // Text + simple width measurement (Latin / numbers).  Arabic width is
@@ -254,8 +412,8 @@ function drawTableHeader(doc, ctx, y){
     doc.setFontSize(arSize);
     doc.setTextColor(0xFF, 0xFF, 0xFF);
     const arStr = headers[i].ar;
-    while(arSize > 5.5 && doc.getTextWidth(arStr) > cellW){ arSize -= 0.5; doc.setFontSize(arSize); }
-    doc.text(arStr, midX, y + 2.8, { align: "center" });
+    while(arSize > 5.5 && arabicWidth(doc, arStr, arSize, true) > cellW){ arSize -= 0.5; doc.setFontSize(arSize); }
+    doc.text(arabicToDisplay(arStr), midX, y + 2.8, { align: "center" });
 
     // --- English: bottom, regular, white, single line ---
     doc.setFont(FONT_FAMILY, "normal");
@@ -302,22 +460,22 @@ function drawProductRow(doc, ctx, y, row){
   const c1cx = (left[1] + left[2]) / 2;
   textLatin(doc, row.catEn, c1cx, midY + 1, { size: 5.5, align: "center" });
 
-  // Col 2: product name (Arabic top, English bottom, centered)
+  // Col 2: product name (English top, Arabic bottom, centered)
   const c2cx = (left[2] + left[3]) / 2;
   const productCellW = left[3] - left[2] - 1;
-  // Arabic name: shrink to fit if needed
-  doc.setFont(FONT_FAMILY, "bold");
-  let arSize = 8;
-  doc.setFontSize(arSize);
-  while(arSize > 6 && doc.getTextWidth(row.ar) > productCellW){ arSize -= 0.5; doc.setFontSize(arSize); }
-  textArabic(doc, row.ar, c2cx, y + 2.8, { size: arSize, bold: true, align: "center" });
-  // English name: single line, centered
+  // English name first (top): single line, centered
   doc.setFont(FONT_FAMILY, "normal");
   let enSize = 6.5;
   doc.setFontSize(enSize);
   const enStr = row.en;
   while(enSize > 5 && doc.getTextWidth(enStr) > productCellW){ enSize -= 0.5; doc.setFontSize(enSize); }
-  doc.text(enStr, c2cx, y + 6, { align: "center" });
+  doc.text(enStr, c2cx, y + 2.8, { align: "center" });
+  // Arabic name (bottom): shrink to fit if needed
+  doc.setFont(FONT_FAMILY, "bold");
+  let arSize = 8;
+  doc.setFontSize(arSize);
+  while(arSize > 6 && arabicWidth(doc, row.ar, arSize, true) > productCellW){ arSize -= 0.5; doc.setFontSize(arSize); }
+  textArabic(doc, row.ar, c2cx, y + 6, { size: arSize, bold: true, align: "center" });
 
   // Col 3: requested qty (printed number)
   const c3cx = (left[3] + left[4]) / 2;
@@ -349,14 +507,13 @@ function drawFooter(doc, ctx){
   doc.rect(cx - boxW/2, y + 2, boxW, boxH);
   y += 2 + boxH + 6;
 
-  // Signature area: 2 columns
+  // Signature area: 2 columns — smaller boxes, no outer rectangle
   const blockW = INNER_W;
-  const blockH = 32;
-  setRgb(doc, "border");
-  setLine(doc, 0.3);
-  doc.rect(MARGIN_LEFT, y, blockW, blockH);
-  // Vertical separator
+  const blockH = 22;
+  // Vertical separator between the two signature columns
   const midX = MARGIN_LEFT + blockW/2;
+  setRgb(doc, "border");
+  setLine(doc, 0.25);
   line(doc, midX, y, midX, y + blockH);
 
   // Right column (Branch Manager)
@@ -368,25 +525,25 @@ function drawFooter(doc, ctx){
 function drawSignatureColumn(doc, nameLabel, sigLabel, x, y, w, h, rtl){
   // Name label (bold)
   if(rtl){
-    textArabic(doc, nameLabel, x + w - 2, y + 5, { size: 11, bold: true, align: "right" });
+    textArabic(doc, nameLabel, x + w - 2, y + 4, { size: 10, bold: true, align: "right" });
   } else {
-    textLatin(doc, nameLabel, x + 2, y + 5, { size: 11, bold: true, align: "left" });
+    textLatin(doc, nameLabel, x + 2, y + 4, { size: 10, bold: true, align: "left" });
   }
   // Name line
   setRgb(doc, "border");
   setLine(doc, 0.25);
-  const nameY = y + 12;
+  const nameY = y + 9;
   line(doc, x + 4, nameY, x + w - 4, nameY);
 
   // Signature label
-  const sigY = y + 16;
+  const sigY = y + 12;
   if(rtl){
-    textArabic(doc, sigLabel, x + w - 2, sigY, { size: 10, align: "right" });
+    textArabic(doc, sigLabel, x + w - 2, sigY, { size: 9, align: "right" });
   } else {
-    textLatin(doc, sigLabel, x + 2, sigY, { size: 10, align: "left" });
+    textLatin(doc, sigLabel, x + 2, sigY, { size: 9, align: "left" });
   }
   // Signature line
-  const sigLineY = y + 24;
+  const sigLineY = y + 17;
   line(doc, x + 4, sigLineY, x + w - 4, sigLineY);
 }
 
@@ -415,9 +572,12 @@ export async function generateInventoryReportPdf(inputs){
   const CAT_ORDER = ["قسم المعمل","قسم السوبرماركت","قسم محلات الجملة","قسم المستودع","احتياجات المعمل"];
   const EN_CAT = {
     "قسم المعمل":        "Lab",
+    "المعمل":            "Lab",
     "قسم السوبرماركت":   "Supermarket",
     "قسم محلات الجملة":  "Wholesale",
     "قسم المستودع":      "Warehouse",
+    "المستودع":          "Warehouse",
+    "البوكسات":          "Boxes",
     "احتياجات المعمل":    "Lab Needs",
   };
   const groups = {};
@@ -438,7 +598,7 @@ export async function generateInventoryReportPdf(inputs){
     const all = groups[cat] || [];
     const inCart = all.filter(p => cartIds.has(String(p.id)));
     const notInCart = all.filter(p => !cartIds.has(String(p.id)));
-    const catEn = EN_CAT[cat] || cat;
+    const catEn = EN_CAT[cat] || (cat ? cat : "Other");
     for(const p of [...inCart, ...notInCart]){
       serial++;
       const c = cartById.get(String(p.id));
