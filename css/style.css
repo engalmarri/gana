@@ -817,6 +817,7 @@ body.admin-locked{overflow:hidden;}
 .inv-vis-toggle{display:inline-flex;align-items:center;gap:2px;cursor:pointer;font-size:18px;line-height:1;user-select:none;}
 .inv-vis-toggle input[type="checkbox"]{width:16px;height:16px;cursor:pointer;accent-color:var(--accent);}
 .inv-vis-toggle span{font-size:16px;line-height:1;}
+.noexp-toggle input[type="checkbox"]{width:18px;height:18px;accent-color:#c2550a;}
 .edit-btn{
   background:linear-gradient(135deg,var(--accent),var(--secondary));color:#fff;
   padding:8px 16px;border:none;border-radius:var(--radius-sm);font-weight:700;
