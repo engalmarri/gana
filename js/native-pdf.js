@@ -67,7 +67,7 @@ function buildRows(products, cart){
       arabicName: product.name || "",
       englishName: product.description || product.nameEn || "",
       category: categoryEnglish(category, product.categoryEn),
-      requested: requestedById.get(String(product.id)) || "",
+      requested: requestedById.has(String(product.id)) ? requestedById.get(String(product.id)) : 0,
       noExpiry: Boolean(product.noExpiry),
     }));
   });
@@ -109,12 +109,13 @@ function reportStyles(){
     .report-table th { height:51px; background:#4b5563; color:#fff; padding:2px 1px; border:1px solid #fff; text-align:center; vertical-align:middle; font-weight:700; }
     .report-table th .ar { display:block; direction:rtl; unicode-bidi:plaintext; font-size:5.7px; line-height:1.06; }
     .report-table th .en { display:block; direction:ltr; font-size:4.6px; line-height:1.04; font-weight:400; margin-top:1px; overflow-wrap:anywhere; }
-    .report-table td { height:${ROW_HEIGHT}px; padding:1px 1px; border:1px solid #b8bec5; text-align:center; vertical-align:middle; overflow:hidden; font-size:10px; }
-    .report-table td.product { text-align:center; }
-    .product-ar { direction:rtl; unicode-bidi:plaintext; font-size:10px; font-weight:400; line-height:1.02; overflow-wrap:anywhere; }
-    .product-en { direction:ltr; font-size:7px; line-height:1; margin-top:1px; overflow-wrap:anywhere; }
+    .report-table td { height:${ROW_HEIGHT}px; padding:1px; border:1px solid #b8bec5; text-align:center; vertical-align:middle; overflow:hidden; font-size:10px; color:#000 !important; }
+    .report-table td.report-product-cell { display:table-cell !important; min-height:0 !important; margin:0 !important; padding:1px !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; text-align:center; color:#000 !important; }
+    .report-product-ar { direction:rtl; unicode-bidi:plaintext; color:#000 !important; opacity:1 !important; font-family:Arial, Tahoma, sans-serif; font-size:10px; font-weight:400; line-height:1.02; overflow-wrap:anywhere; }
+    .report-product-en { direction:ltr; color:#000 !important; opacity:1 !important; font-family:Arial, Tahoma, sans-serif; font-size:7px; line-height:1; margin-top:1px; overflow-wrap:anywhere; }
     .category { direction:ltr; font-size:10px; overflow-wrap:anywhere; }
     .manual-cell { padding:0 !important; }
+    .requested-cell.is-requested { background:#e5e7eb; }
     .no-expiry { font-size:12px; font-weight:700; }
     .continued-head { height:25px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #b8bec5; font-size:8px; font-weight:700; }
     .continued-head .ar { direction:rtl; unicode-bidi:plaintext; }
@@ -124,13 +125,15 @@ function reportStyles(){
     .delivery-date .ar { direction:rtl; unicode-bidi:plaintext; font-size:7px; margin-top:1px; }
     .date-box { width:92px; height:14px; border:1px solid #8e969f; margin:3px auto 0; }
     .signatures { height:79px; display:grid; grid-template-columns:1fr 1fr; border:1.5px solid #626a73; }
-    .signature-half { padding:6px 13px; text-align:center; }
+    .signature-half { padding:6px 0; text-align:center; }
     .signature-half + .signature-half { border-left:1px solid #626a73; }
-    .signature-title-ar { direction:rtl; unicode-bidi:plaintext; font-size:9px; font-weight:700; }
-    .signature-title-en { direction:ltr; font-size:7px; margin-top:1px; }
-    .signature-label { margin-top:10px; direction:rtl; unicode-bidi:plaintext; font-size:8px; }
-    .signature-label .en { direction:ltr; font-size:6px; margin-top:1px; }
-    .signature-line { border-bottom:1px solid #8e969f; margin:3px 12px 0; }
+    .signature-pair { display:flex; justify-content:space-between; align-items:baseline; gap:8px; width:100%; }
+    .signature-pair .ar { direction:rtl; unicode-bidi:plaintext; font-size:9px; font-weight:700; text-align:right; }
+    .signature-pair .en { direction:ltr; font-size:7px; font-weight:700; text-align:left; }
+    .signature-pair.signature-label { margin-top:10px; }
+    .signature-pair.signature-label .ar { font-size:8px; font-weight:400; }
+    .signature-pair.signature-label .en { font-size:6px; font-weight:400; }
+    .signature-line { border-bottom:1px solid #8e969f; margin:3px 0 0; }
     .page-number { position:absolute; right:${PAGE_MARGIN}px; bottom:6px; direction:ltr; font-size:8px; background:#fff; padding-left:3px; }
   `;
 }
@@ -155,7 +158,8 @@ function tableRows(rows){
   if(!rows.length) return `<tbody><tr><td colspan="9">No products</td></tr></tbody>`;
   return `<tbody>${rows.map(row => {
     const expiry = row.noExpiry ? `<td class="no-expiry">-</td><td class="no-expiry">-</td><td class="no-expiry">-</td>` : `<td class="manual-cell"></td><td class="manual-cell"></td><td class="manual-cell"></td>`;
-    return `<tr><td>${row.serial}</td><td class="product"><div class="product-ar">${escapeHtml(row.arabicName)}</div><div class="product-en">${escapeHtml(row.englishName)}</div></td><td class="category">${escapeHtml(row.category)}</td><td>${escapeHtml(row.requested)}</td><td class="manual-cell"></td><td class="manual-cell"></td>${expiry}</tr>`;
+    const requestedClass = Number(row.requested) > 0 ? "requested-cell is-requested" : "requested-cell";
+    return `<tr><td>${row.serial}</td><td class="report-product-cell"><div class="report-product-ar">${escapeHtml(row.arabicName)}</div><div class="report-product-en">${escapeHtml(row.englishName)}</div></td><td class="category">${escapeHtml(row.category)}</td><td class="${requestedClass}">${escapeHtml(row.requested)}</td><td class="manual-cell"></td><td class="manual-cell"></td>${expiry}</tr>`;
   }).join("")}</tbody>`;
 }
 
@@ -168,13 +172,14 @@ function footer(){
   const inspectorEn = "Branch Inspector Name";
   const signatureAr = "التوقيع";
   const signatureEn = "Signature";
-  const half = (ar, en) => `<div class="signature-half"><div class="signature-title-ar">${escapeHtml(ar)}</div><div class="signature-title-en">${escapeHtml(en)}</div><div class="signature-line"></div><div class="signature-label">${escapeHtml(signatureAr)}<div class="en">${escapeHtml(signatureEn)}</div></div><div class="signature-line"></div></div>`;
+  const pair = (ar, en, extra = "") => `<div class="signature-pair ${extra}"><span class="en">${escapeHtml(en)}</span><span class="ar">${escapeHtml(ar)}</span></div>`;
+  const half = (ar, en) => `<div class="signature-half">${pair(ar, en)}<div class="signature-line"></div>${pair(signatureAr, signatureEn, "signature-label")}<div class="signature-line"></div></div>`;
   return `<footer class="report-footer"><div class="delivery-date"><div class="en">${escapeHtml(dateEn)}</div><div class="ar">${escapeHtml(dateAr)}</div><div class="date-box"></div></div><div class="signatures">${half(inspectorAr, inspectorEn)}${half(managerAr, managerEn)}</div></footer>`;
 }
 
 function pageMarkup({ rows, first, last, pageNumber, total, ctx, t }){
   const header = first
-    ? `<header class="report-top"><div class="report-meta branch">${escapeHtml(ctx.branch)}<br>${escapeHtml(ctx.date)}</div><div class="report-meta customer"><div class="label">Customer</div>${escapeHtml(ctx.user)}</div><div class="report-brand"><img src="images/logo.png" alt="Logo"></div><div class="report-title"><div class="ar">تقرير جرد وتسليم منتجات</div><div class="en">Products Inventory & Delivery Report</div></div></header>`
+    ? `<header class="report-top"><div class="report-meta branch">${escapeHtml(ctx.branch)}<br>${escapeHtml(ctx.date)}</div><div class="report-meta customer"><div class="label">Customer</div>${escapeHtml(ctx.user)}<br><span dir="ltr">Invoice No. ${escapeHtml(ctx.invoiceNo)}</span></div><div class="report-brand"><img src="images/logo.png" alt="Logo"></div><div class="report-title"><div class="ar">تقرير جرد وتسليم منتجات</div><div class="en">Products Inventory & Delivery Report</div></div></header>`
     : `<header class="continued-head"><span>Products Inventory & Delivery Report</span><span class="ar">تقرير جرد وتسليم منتجات</span></header>`;
   return `<section class="inventory-report-page">${header}<table class="report-table">${tableHeaders()}${tableRows(rows)}</table>${last ? footer() : ""}<div class="page-number">${pageNumber} of ${total}</div></section>`;
 }
@@ -187,7 +192,7 @@ async function renderPageToPdf(doc, html, pageIndex){
   try {
     await document.fonts?.ready;
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    const canvas = await window.html2canvas(host.firstElementChild.nextElementSibling, { scale:2, useCORS:true, backgroundColor:"#ffffff", logging:false, width:A4.width, height:A4.height });
+    const canvas = await window.html2canvas(host.firstElementChild.nextElementSibling, { scale:1.5, useCORS:true, backgroundColor:"#ffffff", logging:false, width:A4.width, height:A4.height });
     if(pageIndex > 0) doc.addPage();
     doc.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297, undefined, "FAST");
   } finally {
@@ -200,7 +205,7 @@ export async function generateInventoryReportPdf(inputs){
   const t = labelsFor(inputs);
   const rows = buildRows(inputs.products, inputs.cart);
   const pages = splitRows(rows);
-  const ctx = { branch: inputs.customer?.branch || "", user: inputs.customer?.name || "", date: inputs.dateStr || "" };
+  const ctx = { branch: inputs.customer?.branch || "", user: inputs.customer?.name || "", date: inputs.dateStr || "", invoiceNo: inputs.invoiceNo || "" };
   const doc = new window.jspdf.jsPDF({ unit:"mm", format:"a4", orientation:"portrait", compress:true });
   for(let index = 0; index < pages.length; index++){
     await renderPageToPdf(doc, pageMarkup({ rows:pages[index], first:index === 0, last:index === pages.length - 1, pageNumber:index + 1, total:pages.length, ctx, t }), index);

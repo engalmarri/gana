@@ -1,6 +1,6 @@
 import { db } from "./firebase.js";
 import { generateInvoicePdf } from "./invoice-pdf.js?v=20260803";
-import { generateInventoryReportPdf } from "./native-pdf.js?v=20260810";
+import { generateInventoryReportPdf } from "./native-pdf.js?v=20260810-2";
 import {
   collection, addDoc, getDoc, getDocs, updateDoc, doc,
   query, where, orderBy, serverTimestamp, Timestamp
@@ -10,6 +10,7 @@ import { getLang, setLang, t, catLabel, applyFullLang, applyCartLang } from "./i
 const SESSION_KEY = "sallah_customer_session";
 const CUSTOMERS_LOCAL_KEY = "sallah_customers_data";
 const INV_COUNTER_KEY = "sallah_invoice_counter";
+const INVENTORY_REPORT_COUNTER_KEY = "sallah_inventory_report_counter";
 const COLUMNS_PER_INVOICE_ROW = 3;
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
@@ -371,6 +372,7 @@ function clearCart(){cart=[];saveCart();renderCart();closeClearCartModal();}
 
 /* INVOICE */
 function makeInvoiceNumber(){let c=1;try{const v=localStorage.getItem(INV_COUNTER_KEY);if(v)c=parseInt(v,10)||1;}catch(e){}const n=String(c).padStart(4,"0");localStorage.setItem(INV_COUNTER_KEY,String(c+1));return`INV-${n}`;}
+function makeInventoryReportNumber(){let c=1;try{const v=localStorage.getItem(INVENTORY_REPORT_COUNTER_KEY);if(v)c=parseInt(v,10)||1;}catch(e){}const n=String(c).padStart(4,"0");localStorage.setItem(INVENTORY_REPORT_COUNTER_KEY,String(c+1));return n;}
 function formatInvoiceDate(){return new Date().toLocaleString("en-GB",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});}
 function createInvoiceCells(item){const desc=item.description||"";const arName=item.name||"";return `<td class="invoice-check-cell"></td><td class="invoice-product-cell"><div class="invoice-product-main"><span class="invoice-product-number invoice-product-qty">${getItemQty(item)}</span><strong><bdi>${escapeHTML(desc)}</bdi></strong><span class="invoice-check-box"></span></div>${arName?`<div class="invoice-product-details" dir="rtl"><bdi>${escapeHTML(arName)}</bdi></div>`:""}</td>`;}
 function createEmptyCells(){return '<td class="invoice-check-cell invoice-empty-cell"></td><td class="invoice-product-cell invoice-empty-cell"></td>';}
@@ -573,6 +575,7 @@ async function generateInventoryReport(){
   try {
     const allProducts = await loadAllProducts();
     const dateStr = formatInvoiceDate();
+    const invoiceNo = makeInventoryReportNumber();
     const lang = getLang();
     const labels = {
       rptTitleAr: t("rptTitleAr"),
@@ -638,6 +641,7 @@ async function generateInventoryReport(){
         accountType: currentCustomer.accountType || "",
       },
       dateStr,
+      invoiceNo,
     });
     if(window.SIMSIM_LOGO_URL === undefined) window.SIMSIM_LOGO_URL = "images/logo.png";
   } catch (e) {
