@@ -1,6 +1,6 @@
 import { db } from "./firebase.js";
 import { generateInvoicePdf } from "./invoice-pdf.js?v=20260803";
-import { generateInventoryReportPdf } from "./native-pdf.js?v=20260803";
+import { generateInventoryReportPdf } from "./native-pdf.js?v=20260810";
 import {
   collection, addDoc, getDoc, getDocs, updateDoc, doc,
   query, where, orderBy, serverTimestamp, Timestamp
@@ -621,6 +621,7 @@ async function generateInventoryReport(){
         description: c.description || "",
         qty: c.qty || 0,
         category: c.category || "Other",
+        noExpiry: !!c.noExpiry,
       })),
       products: (allProducts || []).map(p => ({
         id: p.id,
