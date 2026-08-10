@@ -629,6 +629,7 @@ async function generateInventoryReport(){
         nameEn: p.nameEn || "",
         category: p.category || "Other",
         code: p.code || "",
+        noExpiry: !!p.noExpiry,
       })),
       customer: {
         name: currentCustomer.name || "",

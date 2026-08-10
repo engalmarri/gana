@@ -206,7 +206,12 @@ function renderCategoryProducts(cat){
   } else {
     list.innerHTML = "";
     catProducts.forEach(p => {
-      list.insertAdjacentHTML("beforeend",`<div class="admin-product"><img src="${escapeHTML(getProductImage(p))}" alt="${escapeHTML(p.description||p.name||"")}" onerror="this.src='images/noimg.jpg'"><div class="admin-info"><h3>${escapeHTML(p.description||"")}</h3><p class="product-name-ar">${escapeHTML(p.name||"")}</p><p>SKU: ${escapeHTML(p.code||"")}</p></div><div class="admin-actions"><label class="inv-vis-toggle" title="Show in Inventory Store"><input type="checkbox" class="inv-vis-cb" data-id="${escapeHTML(p.id)}"${p.invVisible!==false?" checked":""}><i data-lucide="eye"></i></label><button class="edit-btn" type="button" onclick="editProduct('${escapeHTML(p.id)}')"><i data-lucide="pencil"></i>${t("editBtn")}</button><button class="delete-btn" type="button" onclick="deleteProduct('${escapeHTML(p.id)}')"><i data-lucide="trash-2"></i>${t("deleteBtn")}</button></div></div>`);
+      list.insertAdjacentHTML("beforeend",`<div class="admin-product"><img src="${escapeHTML(getProductImage(p))}" alt="${escapeHTML(p.description||p.name||"")}" onerror="this.src='images/noimg.jpg'"><div class="admin-info"><h3>${escapeHTML(p.description||"")}</h3><p class="product-name-ar">${escapeHTML(p.name||"")}</p><p>SKU: ${escapeHTML(p.code||"")}</p></div><div class="admin-actions"><label class="inv-vis-toggle" title="Show in Inventory Store"><input type="checkbox" class="inv-vis-cb" data-id="${escapeHTML(p.id)}"${p.invVisible!==false?" checked":""}><i data-lucide="eye"></i></label><label class="inv-vis-toggle noexp-toggle" title="${t("noExpiry")}"><input type="checkbox" class="noexp-cb" data-id="${escapeHTML(p.id)}"${p.noExpiry?" checked":""}></label><button class="edit-btn" type="button" onclick="editProduct('${escapeHTML(p.id)}')"><i data-lucide="pencil"></i>${t("editBtn")}</button><button class="delete-btn" type="button" onclick="deleteProduct('${escapeHTML(p.id)}')"><i data-lucide="trash-2"></i>${t("deleteBtn")}</button></div></div>`);
+    });
+    list.querySelectorAll(".noexp-cb").forEach(cb => {
+      cb.addEventListener("change", function(){
+        updateDoc(doc(db,"products",this.dataset.id),{noExpiry:this.checked}).catch(()=>{});
+      });
     });
     list.querySelectorAll(".inv-vis-cb").forEach(cb => {
       cb.addEventListener("change", function(){
@@ -239,7 +244,7 @@ function renderProducts(products){
   const checked = new Set((window.__selectedProducts)||[]);
   products.forEach(p=>{
     const cid = p.id;
-    productsTable.insertAdjacentHTML("beforeend",`<div class="admin-product"><label class="prod-check"><input type="checkbox" class="prod-cb" value="${escapeHTML(cid)}"${checked.has(cid)?" checked":""}></label><img src="${escapeHTML(getProductImage(p))}" alt="${escapeHTML(p.description||p.name||"")}" onerror="this.src='images/noimg.jpg'"><div class="admin-info"><h3>${escapeHTML(p.description||"")}</h3><p class="product-name-ar">${escapeHTML(p.name||"")}</p><p>SKU: ${escapeHTML(p.code||"")}</p><p style="color:var(--accent);font-weight:700;">${escapeHTML(catLabel(p.category||""))}</p></div><div class="admin-actions"><label class="inv-vis-toggle" title="Show in Inventory Store"><input type="checkbox" class="inv-vis-cb" data-id="${escapeHTML(cid)}"${p.invVisible!==false?" checked":""}><i data-lucide="eye"></i></label><button class="edit-btn" type="button" onclick="editProduct('${escapeHTML(p.id)}')"><i data-lucide="pencil"></i>${t("editBtn")}</button><button class="delete-btn" type="button" onclick="deleteProduct('${escapeHTML(p.id)}')"><i data-lucide="trash-2"></i>${t("deleteBtn")}</button></div></div>`);
+    productsTable.insertAdjacentHTML("beforeend",`<div class="admin-product"><label class="prod-check"><input type="checkbox" class="prod-cb" value="${escapeHTML(cid)}"${checked.has(cid)?" checked":""}></label><img src="${escapeHTML(getProductImage(p))}" alt="${escapeHTML(p.description||p.name||"")}" onerror="this.src='images/noimg.jpg'"><div class="admin-info"><h3>${escapeHTML(p.description||"")}</h3><p class="product-name-ar">${escapeHTML(p.name||"")}</p><p>SKU: ${escapeHTML(p.code||"")}</p><p style="color:var(--accent);font-weight:700;">${escapeHTML(catLabel(p.category||""))}</p></div><div class="admin-actions"><label class="inv-vis-toggle" title="Show in Inventory Store"><input type="checkbox" class="inv-vis-cb" data-id="${escapeHTML(cid)}"${p.invVisible!==false?" checked":""}><i data-lucide="eye"></i></label><label class="inv-vis-toggle noexp-toggle" title="${t("noExpiry")}"><input type="checkbox" class="noexp-cb" data-id="${escapeHTML(cid)}"${p.noExpiry?" checked":""}></label><button class="edit-btn" type="button" onclick="editProduct('${escapeHTML(p.id)}')"><i data-lucide="pencil"></i>${t("editBtn")}</button><button class="delete-btn" type="button" onclick="deleteProduct('${escapeHTML(p.id)}')"><i data-lucide="trash-2"></i>${t("deleteBtn")}</button></div></div>`);
   });
   // Re-check checkboxes after re-render
   productsTable.querySelectorAll(".prod-cb").forEach(cb => {
@@ -252,6 +257,14 @@ function renderProducts(products){
       const id = this.dataset.id;
       const val = this.checked;
       updateDoc(doc(db,"products",id),{invVisible:val}).catch(()=>{});
+    });
+  });
+  // No-expiry toggle listeners
+  productsTable.querySelectorAll(".noexp-cb").forEach(cb => {
+    cb.addEventListener("change", function(){
+      const id = this.dataset.id;
+      const val = this.checked;
+      updateDoc(doc(db,"products",id),{noExpiry:val}).catch(()=>{});
     });
   });
   updateBulkUI();
@@ -268,14 +281,14 @@ document.getElementById("suggestCodeCheckbox")?.addEventListener("change",functi
   }else{codeInput.disabled=false;}
 });
 
-function clearForm(){["name","description","code","image"].forEach(id=>{const e=getElement(id);if(e)e.value="";});const f=getElement("imageFile");if(f)f.value="";const pi=getElement("previewImage");if(pi)pi.src="images/noimg.jpg";const sc=getElement("suggestCodeCheckbox");if(sc){sc.checked=false;}const ci=getElement("code");if(ci)ci.disabled=false;}
+function clearForm(){["name","description","code","image"].forEach(id=>{const e=getElement(id);if(e)e.value="";});const f=getElement("imageFile");if(f)f.value="";const pi=getElement("previewImage");if(pi)pi.src="images/noimg.jpg";const sc=getElement("suggestCodeCheckbox");if(sc){sc.checked=false;}const ci=getElement("code");if(ci)ci.disabled=false;const ne=getElement("noExpiry");if(ne){ne.checked=false;}}
 
 function compressImageFile(file){return new Promise((res,rej)=>{const img=new Image();const r=new FileReader();r.onload=e=>{img.onload=()=>{const c=document.createElement("canvas");let w=img.width,h=img.height;if(w>800){h=h*(800/w);w=800;}c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);const d=c.toDataURL("image/jpeg",0.6);if(Math.ceil((d.length*3)/4)>1000000){rej(new Error("Image > 1MB"));return;}res(d);};img.onerror=()=>rej(new Error("Failed to load"));img.src=e.target.result;};r.onerror=()=>rej(new Error("Failed to read"));r.readAsDataURL(file);});}
 
 getElement("save")?.addEventListener("click",async()=>{
   try{const pCat=getInputValue("category");const pProds=currentAdminPerms.canAddProducts;if(currentAdminPermsLoaded&&(!pProds||Object.keys(pProds).length===0||pProds[pCat]!==true)){alert(t("errorSaving"));return;}
   let img=getInputValue("image");const f=getElement("imageFile")?.files[0];if(f)img=await compressImageFile(f);if(!img)img="images/noimg.jpg";
-  const p={name:getInputValue("name"),description:getInputValue("description"),code:getInputValue("code"),category:pCat,image:img,invVisible:true,createdAt:Date.now()};
+  const p={name:getInputValue("name"),description:getInputValue("description"),code:getInputValue("code"),category:pCat,image:img,invVisible:true,noExpiry:!!getElement("noExpiry")?.checked,createdAt:Date.now()};
   if(!p.name||!p.code){alert(t("fillRequired"));return;}
   if(editingId){await updateDoc(doc(db,"products",editingId),p);editingId=null;alert(t("productUpdated"));}
   else{await addDoc(productsCollection,p);alert(t("productAdded"));}
@@ -283,7 +296,7 @@ getElement("save")?.addEventListener("click",async()=>{
 });
 
 window.deleteProduct=async function(id){if(!confirm(t("deleteProduct")))return;try{await deleteDoc(doc(db,"products",id));await loadProducts();}catch(e){alert(t("errorOccurredShort"));}};
-window.editProduct=function(id){const p=allProducts.find(i=>String(i.id)===String(id));if(!p)return;editingId=id;showProductForm(p.category||"قسم المعمل");getElement("name").value=p.name||"";getElement("description").value=p.description||"";getElement("code").value=p.code||"";getElement("image").value=p.image||"";const pi=getElement("previewImage");if(pi)pi.src=getProductImage(p);window.scrollTo({top:0,behavior:"smooth"});const sc=getElement("suggestCodeCheckbox");if(sc)sc.checked=false;const ci=getElement("code");if(ci)ci.disabled=false;};
+window.editProduct=function(id){const p=allProducts.find(i=>String(i.id)===String(id));if(!p)return;editingId=id;showProductForm(p.category||"قسم المعمل");getElement("name").value=p.name||"";getElement("description").value=p.description||"";getElement("code").value=p.code||"";getElement("image").value=p.image||"";const pi=getElement("previewImage");if(pi)pi.src=getProductImage(p);const ne=getElement("noExpiry");if(ne){ne.checked=!!p.noExpiry;}window.scrollTo({top:0,behavior:"smooth"});const sc=getElement("suggestCodeCheckbox");if(sc)sc.checked=false;const ci=getElement("code");if(ci)ci.disabled=false;};
 
 getElement("searchAdmin")?.addEventListener("input",function(){const v=normalizeText(this.value);renderProducts(allProducts.filter(p=>normalizeText(`${p.name||""} ${p.description||""} ${p.code||""} ${p.category||""}`).includes(v)));});
 getElement("sortNewest")?.addEventListener("click",()=>renderProducts([...allProducts].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))));
@@ -789,12 +802,19 @@ function showCategoryProducts(cat){
   const products=allProducts.filter(p=>p.category===cat);
   if(!prodList)return;
   prodList.innerHTML=products.length===0?`<div class='empty-msg'>${t("noProductsInCat")}</div>`:"";
-  products.forEach(p=>{prodList.insertAdjacentHTML("beforeend",`<div class="admin-product"><img src="${escapeHTML(getProductImage(p))}" alt="${escapeHTML(p.description||p.name||"")}" onerror="this.src='images/noimg.jpg'"><div class="admin-info"><h3>${escapeHTML(p.description||"")}</h3><p class="product-name-ar">${escapeHTML(p.name||"")}</p><p>SKU: ${escapeHTML(p.code||"")}</p></div><div class="admin-actions"><label class="inv-vis-toggle" title="Show in Inventory Store"><input type="checkbox" class="inv-vis-cb" data-id="${escapeHTML(p.id)}"${p.invVisible!==false?" checked":""}><i data-lucide="eye"></i></label><button class="edit-btn" type="button" onclick="editProduct('${escapeHTML(p.id)}')"><i data-lucide="pencil"></i>${t("editBtn")}</button><button class="delete-btn" type="button" onclick="deleteProduct('${escapeHTML(p.id)}')"><i data-lucide="trash-2"></i>${t("deleteBtn")}</button></div></div>`);});
+  products.forEach(p=>{prodList.insertAdjacentHTML("beforeend",`<div class="admin-product"><img src="${escapeHTML(getProductImage(p))}" alt="${escapeHTML(p.description||p.name||"")}" onerror="this.src='images/noimg.jpg'"><div class="admin-info"><h3>${escapeHTML(p.description||"")}</h3><p class="product-name-ar">${escapeHTML(p.name||"")}</p><p>SKU: ${escapeHTML(p.code||"")}</p></div><div class="admin-actions"><label class="inv-vis-toggle" title="Show in Inventory Store"><input type="checkbox" class="inv-vis-cb" data-id="${escapeHTML(p.id)}"${p.invVisible!==false?" checked":""}><i data-lucide="eye"></i></label><label class="inv-vis-toggle noexp-toggle" title="${t("noExpiry")}"><input type="checkbox" class="noexp-cb" data-id="${escapeHTML(p.id)}"${p.noExpiry?" checked":""}></label><button class="edit-btn" type="button" onclick="editProduct('${escapeHTML(p.id)}')"><i data-lucide="pencil"></i>${t("editBtn")}</button><button class="delete-btn" type="button" onclick="deleteProduct('${escapeHTML(p.id)}')"><i data-lucide="trash-2"></i>${t("deleteBtn")}</button></div></div>`);});
   prodList.querySelectorAll(".inv-vis-cb").forEach(cb => {
     cb.addEventListener("change", function(){
       const id = this.dataset.id;
       const val = this.checked;
       updateDoc(doc(db,"products",id),{invVisible:val}).catch(()=>{});
+    });
+  });
+  prodList.querySelectorAll(".noexp-cb").forEach(cb => {
+    cb.addEventListener("change", function(){
+      const id = this.dataset.id;
+      const val = this.checked;
+      updateDoc(doc(db,"products",id),{noExpiry:val}).catch(()=>{});
     });
   });
   if(addBtn)addBtn.onclick=()=>{clearForm();editingId=null;showProductForm(cat);document.querySelectorAll(".admin-tab").forEach(t=>t.classList.remove("active"));document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active"));const pt=document.querySelector('[data-tab="products"]');const ps=document.getElementById("section-products");if(pt)pt.classList.add("active");if(ps)ps.classList.add("active");};

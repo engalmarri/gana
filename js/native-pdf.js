@@ -1,15 +1,19 @@
 // Branch Products Monitoring (Inventory) Report — vector PDF generator.
 //
 // Produces a fully vector A4 PDF using jsPDF native APIs.  Arabic text is
-// rendered with the embedded Tajawal TTF (regular + bold).  The font's
-// own OpenType GSUB table handles Arabic shaping at PDF-read time — we
-// therefore pass text UNSHAPED (logical order) and let the reader apply
-// the correct presentation forms.  This is the standard approach for
-// embedding Arabic-capable TTFs in a PDF.
+// rendered with the embedded Tajawal TTF (regular + bold).
 //
-// Layout: corporate inventory form.  No html2canvas, no autoTable default
-// styling, no third-party themes.  Every line, border, header, and cell is
-// drawn manually.
+// NOTE: like every Arabic-capable TTF, this font ships the *connected*
+// presentation forms (initial/medial/final) but omits the isolated
+// presentation forms (and the Persian letters).  PDF readers render the
+// stored glyphs as-is — they do NOT apply OpenType GSUB at PDF-view time —
+// so unshaped Arabic would appear as disconnected isolated letters.  We
+// therefore pre-shape every Arabic run to presentation forms (falling back
+// to the base letter for the isolated form, whose outline is identical) and
+// reverse the run for RTL display.  This is the root-cause fix: Arabic is
+// correct regardless of which viewer opens the PDF.
+//
+// Layout: corporate inventory form, drawn manually (no html2canvas).
 
 const FONT_REG_URL = "https://raw.githubusercontent.com/google/fonts/main/ofl/tajawal/Tajawal-Regular.ttf";
 const FONT_BOLD_URL = "https://raw.githubusercontent.com/google/fonts/main/ofl/tajawal/Tajawal-Bold.ttf";
@@ -20,12 +24,12 @@ const LOGO_URL = "images/logo.png";
 const A4_W = 210;
 const A4_H = 297;
 const MARGIN_TOP = 6;
-const MARGIN_BOTTOM = 10;   // room for page-number strip
+const MARGIN_BOTTOM = 10;   // page-number strip at the very bottom
 const MARGIN_LEFT = 6;
 const MARGIN_RIGHT = 6;
 const INNER_W = A4_W - MARGIN_LEFT - MARGIN_RIGHT; // 198 mm
 
-// Palette (only the 4 grays the spec allows)
+// Palette
 const COLOR_TEXT       = [0x22, 0x22, 0x22]; // #222222
 const COLOR_BORDER     = [0xBF, 0xC3, 0xC8]; // #BFC3C8
 const COLOR_OUTER      = [0x70, 0x70, 0x70]; // #707070
@@ -34,20 +38,20 @@ const COLOR_HEADER_FG  = [0xFF, 0xFF, 0xFF];
 const COLOR_SECTION_BG = [0xE9, 0xEC, 0xEF]; // #E9ECEF
 const COLOR_PAGE_BG    = [0xFF, 0xFF, 0xFF];
 
-// Column widths (mm).  No. is small, Product is the widest, the six
-// numeric inventory columns are small and equal.  Total must equal INNER_W.
-const COL_W = [8, 22, 52, 18, 18, 18, 18, 18, 26];  // No., Category, Product, Requested, Delivered, Available, Expired, No Expiry, Near Expiry
-// Row heights (mm)
-const RH_HEADER    = 8;    // bilingual column header
-const RH_PRODUCT   = 8;    // product row
-// Heights for the page-level blocks
-const HEADER_FIRST_H = 28;  // logo + titles + meta strip (first page only)
-const HEADER_SUB_H = 12;    // tiny header on subsequent pages
-const FOOTER_BAND_H = 46;   // delivery date + signature block (last page)
+// Column widths (mm) — order: No., Product, Category, Requested, Delivered,
+// Available, Expired, No Expiry, Near Expiry.  Total == INNER_W.
+// The last three numeric columns are the widest because their bilingual
+// headers are long (the values themselves are just numbers / empty).
+const COL_W = [7, 42, 16, 14, 14, 20, 16, 22, 47];
+const RH_PRODUCT = 9.5;   // product row height — compact, fits 11pt AR + EN name
+const FOOTER_BAND_H = 48; // delivery date + signature block (last page)
 
-// Inventory input-box dimensions (fits inside the 18mm numeric columns)
-const INPUT_BOX_W = 16;
-const INPUT_BOX_H = 6;
+// Header font metrics (header cells wrap Arabic + English across lines)
+const AR_HDR_SIZE  = 6;
+const EN_HDR_SIZE  = 4.8;
+const AR_HDR_LINE  = 2.25;  // vertical step per Arabic header line (mm)
+const EN_HDR_LINE  = 1.85;  // vertical step per English header line (mm)
+const MIN_HDR      = 8;
 
 // ---------- Font loading ----------
 
@@ -81,14 +85,6 @@ function loadFonts(){
 }
 
 // ---------- Arabic shaping ----------
-//
-// The embedded Tajawal TTF ships the *connected* presentation forms
-// (initial/medial/final) but omits the isolated presentation forms (and the
-// Persian letters).  PDF readers render the stored glyphs as-is — they do
-// NOT apply OpenType GSUB at PDF-view time — so unshaped Arabic would appear
-// as disconnected isolated letters.  We therefore pre-shape every Arabic run
-// to presentation forms (falling back to the base letter for the isolated
-// form, whose outline is identical) and reverse the run for RTL display.
 
 const AR_JOIN = {
   // [baseChar, initial, medial, final] — the isolated form is the base char
@@ -225,6 +221,26 @@ function arabicToDisplay(text){
   return shaped.join("");
 }
 
+// jsPDF 2.x ships its own Arabic shaper: a standalone base Arabic letter is
+// rewritten to its ISOLATED presentation form (e.g. م -> U+FEE1), a codepoint
+// Tajawal deliberately omits (see the note atop this file), so jsPDF then
+// drops the glyph and emits an empty text run for that letter.  A lone Mekka
+// letter in a header (the "م" row-number column) must therefore be emitted in
+// a form that exists in both Tajawal faces: every joinable letter ships its
+// FINAL presentation form, which for a standalone letter is visually
+// identical to the isolated form.
+function safeArabicDisplay(text){
+  const disp = arabicToDisplay(String(text));
+  const cps = Array.from(disp);
+  if(cps.length !== 1) return disp;
+  const cc = cps[0].codePointAt(0);
+  if(cc >= 0x0600 && cc <= 0x06FF){
+    const rep = AR_JOIN[cc];
+    if(rep && rep[3] !== null && rep[3] !== cc) return String.fromCharCode(rep[3]);
+  }
+  return disp;
+}
+
 // ---------- Helpers ----------
 
 function setRgb(doc, key){
@@ -276,12 +292,19 @@ function line(doc, x1, y1, x2, y2){
   doc.line(x1, y1, x2, y2);
 }
 
-// Write Latin text using the embedded Tajawal font (it covers Latin too).
-// If the string actually contains Arabic, route it through the shaping
-// pipeline so stray Arabic (e.g. unmapped category names) still renders
-// correctly joined and in RTL order.
+// Write Latin text using the embedded Tajawal font.  If the string actually
+// contains Arabic, route it through the shaping pipeline.  For a "left"
+// anchored cell we clamp the physical LEFT edge of the RTL (pre-reversed)
+// string so Arabic never spills off the page.
 function textLatin(doc, str, x, y, opts){
-  if(str && /[\u0600-\u06FF]/.test(String(str))){
+  str = String(str);
+  if(/[\u0600-\u06FF]/.test(str)){
+    opts = opts || {};
+    const align = opts.align || "left";
+    if(align === "left"){
+      const w = arabicWidth(doc, str, opts.size || 10, opts.bold);
+      return textArabic(doc, str, x + w, y, Object.assign({}, opts, { align: "right" }));
+    }
     return textArabic(doc, str, x, y, opts);
   }
   opts = opts || {};
@@ -292,14 +315,12 @@ function textLatin(doc, str, x, y, opts){
   doc.text(str, x, y, { align: opts.align || "left" });
 }
 
-// Write Arabic text using Tajawal.  The string is pre-shaped to presentation
-// forms and reversed (see arabicToDisplay) so that every PDF reader — which
-// renders stored glyphs without applying GSUB — displays correctly joined
-// Arabic in the right visual order.
+// Write Arabic text using Tajawal (pre-shaped + reversed, RTL-ready).  The
+// x anchor is the RIGHT edge when aligned "right" / the CENTER when "center".
 function textArabic(doc, str, x, y, opts){
   opts = opts || {};
   if(!str) return;
-  const shaped = arabicToDisplay(str);
+  const shaped = safeArabicDisplay(str);
   const style = opts.bold ? "bold" : "normal";
   doc.setFont(FONT_FAMILY, style);
   doc.setFontSize(opts.size || 10);
@@ -314,13 +335,56 @@ function arabicWidth(doc, str, size, bold){
   return doc.getTextWidth(arabicToDisplay(str));
 }
 
-// Text + simple width measurement (Latin / numbers).  Arabic width is
-// measured the same way since shapeArabic returns presentation forms that
-// jsPDF draws LTR.
 function measureText(doc, str, size, bold){
   doc.setFont(FONT_FAMILY, bold ? "bold" : "normal");
   doc.setFontSize(size);
   return doc.getTextWidth(str);
+}
+
+// ---------- Line wrapping (for the long bilingual column headers) ----------
+
+// Latin: let jsPDF split into wrapped lines.
+function latinLines(doc, text, size, maxW){
+  doc.setFont(FONT_FAMILY, "normal");
+  doc.setFontSize(size);
+  const lines = doc.splitTextToSize(String(text), Math.max(maxW, 4));
+  return (lines && lines.length) ? lines : [""];
+}
+
+// Arabic: greedy word-wrap over the *visual* (pre-reversed) string.
+function arabicLines(doc, text, size, maxW){
+  const disp = safeArabicDisplay(String(text));
+  doc.setFont(FONT_FAMILY, "bold");
+  doc.setFontSize(size);
+  const words = disp.split(" ");
+  if(words.length <= 1) return [disp];
+  const lines = [];
+  let cur = "";
+  for(const w of words){
+    const trial = cur ? cur + " " + w : w;
+    if(cur && doc.getTextWidth(trial) > maxW){
+      lines.push(cur);
+      cur = w;
+    } else {
+      cur = trial;
+    }
+  }
+  if(cur) lines.push(cur);
+  return lines;
+}
+
+// Required table-header height given the current labels and column widths.
+function computeHeaderHeight(doc, ctx){
+  let max = 0;
+  ctx.headers.forEach((h, i) => {
+    const cellW = ctx.geom.cols[i].w - 1.6;
+    const isAr = /[\u0600-\u06FF]/.test(String(h.ar));
+    const arN = isAr ? arabicLines(doc, h.ar, AR_HDR_SIZE, cellW).length : 0;
+    const enN = latinLines(doc, h.en, EN_HDR_SIZE, cellW).length;
+    const mm = (isAr ? arN * AR_HDR_LINE : 0) + enN * EN_HDR_LINE + 1.4;
+    if(mm > max) max = mm;
+  });
+  return Math.max(MIN_HDR, Math.ceil(max));
 }
 
 // ---------- Column geometry ----------
@@ -336,95 +400,101 @@ function makeCols(){
   return { cols, left: edges, right: MARGIN_LEFT + INNER_W };
 }
 
-// ---------- First-page header (logo + title + branch/date/user) ----------
+// ---------- First-page header (logo + bilingual title + info band) ----------
 
 function drawFirstPageHeader(doc, ctx){
   const cx = A4_W / 2;
   let y = MARGIN_TOP;
 
-  // Logo centered, max width 32 mm
+  // Logo centered, max width 22 mm
   if(ctx.logoDataUrl){
-    try { doc.addImage(ctx.logoDataUrl, "PNG", cx - 16, y, 32, 10, undefined, "FAST"); }
+    try { doc.addImage(ctx.logoDataUrl, "PNG", cx - 11, y, 22, 6.9, undefined, "FAST"); }
     catch(e){ /* ignore */ }
   }
-  y += 12; // logo zone
+  y += 10.5; // logo zone
 
-  // Bilingual title — centered, symmetric, professional
-  textLatin(doc, ctx.titleEn, cx, y, { size: 14, bold: true, align: "center" });
-  textArabic(doc, ctx.titleAr, cx, y + 5.5, { size: 16, bold: true, align: "center" });
+  // Bilingual title — professional, not oversized
+  textArabic(doc, ctx.titleAr, cx, y, { size: 14, bold: true, align: "center" });
+  textLatin(doc, ctx.titleEn, cx, y + 3.8, { size: 11, bold: true, align: "center" });
 
   // Decorative rule under the title
-  y += 9;
+  const ruleY = y + 5.8;
   setRgb(doc, "outer");
-  setLine(doc, 0.3);
-  line(doc, MARGIN_LEFT + 20, y, A4_W - MARGIN_RIGHT - 20, y);
+  setLine(doc, 0.4);
+  line(doc, MARGIN_LEFT + 15, ruleY, A4_W - MARGIN_RIGHT - 15, ruleY);
 
-  // Meta strip: branch (left)  |  order date + user (right)
-  y += 3;
-  textLatin(doc, ctx.branch, MARGIN_LEFT, y + 3, { size: 9, bold: true, align: "left" });
-  textLatin(doc, ctx.orderDate, A4_W - MARGIN_RIGHT, y + 3, { size: 8, bold: true, align: "right" });
-  textLatin(doc, ctx.user,      A4_W - MARGIN_RIGHT, y + 7, { size: 8, bold: true, align: "right" });
-  y += 10;
+  // Info band: branch (left) | creation date + requester name (right)
+  const bandY = ruleY + 1.8;
+  const bandH = 15;
+  rect(doc, MARGIN_LEFT, bandY, INNER_W, bandH, "sectionBg");
+  setRgb(doc, "border");
+  setLine(doc, 0.25);
+  doc.rect(MARGIN_LEFT, bandY, INNER_W, bandH);
 
-  return y + 2; // cursorY for the table
+  const lx = MARGIN_LEFT + 3;
+  textArabic(doc, ctx.branchLabelAr, lx, bandY + 2.4, { size: 6.5, bold: true, align: "left" });
+  textLatin(doc, ctx.branchLabelEn, lx, bandY + 4.7, { size: 6, bold: true, align: "left" });
+  // Branch value (may be Arabic) — physically left-clamped inside the band
+  textLatin(doc, ctx.branch, lx, bandY + 9.6, { size: 10.5, bold: true, align: "left" });
+
+  const rx = A4_W - MARGIN_RIGHT - 3;
+  // Report creation date
+  textArabic(doc, ctx.dateLabelAr, rx, bandY + 2.4, { size: 6.5, bold: true, align: "right" });
+  textLatin(doc, ctx.dateLabelEn, rx, bandY + 4.4, { size: 6, bold: true, align: "right" });
+  textLatin(doc, ctx.orderDate, rx, bandY + 7.2, { size: 9.5, bold: true, align: "right" });
+  // Requester name
+  textArabic(doc, ctx.userLabelAr, rx, bandY + 9.6, { size: 6.5, bold: true, align: "right" });
+  textLatin(doc, ctx.userLabelEn, rx, bandY + 11.6, { size: 6, bold: true, align: "right" });
+  textLatin(doc, ctx.user, rx, bandY + 14.4, { size: 9.5, bold: true, align: "right" });
+
+  return bandY + bandH + 1; // cursorY for the table
 }
 
-// ---------- Subsequent-page header (tiny: title + page number only) ----------
+// ---------- Subsequent-page header (tiny: title + rule only) ----------
 
-function drawSubPageHeader(doc, ctx, pageNum){
+function drawSubPageHeader(doc, ctx){
   const y = MARGIN_TOP;
-  // Left: report title
-  textLatin(doc, ctx.subHeaderEn, MARGIN_LEFT, y + 3, { size: 8, bold: true, align: "left" });
-  // Right: page number is drawn later, once the total page count is known,
-  // so the "Page X of N" label on continuation pages is always correct.
-  // Thin rule below
+  textLatin(doc, ctx.subHeaderEn, MARGIN_LEFT, y + 3.5, { size: 8.5, bold: true, align: "left" });
   setRgb(doc, "border");
   setLine(doc, 0.2);
-  line(doc, MARGIN_LEFT, y + 6, A4_W - MARGIN_RIGHT, y + 6);
+  line(doc, MARGIN_LEFT, y + 7, A4_W - MARGIN_RIGHT, y + 7);
   return y + 10; // cursorY for the table
 }
 
-// ---------- Table column header ----------
+// ---------- Table column header (bilingual, wrapped) ----------
 
 function drawTableHeader(doc, ctx, y){
   const { cols, left, right } = ctx.geom;
-  const headers = ctx.headers; // [{ar,en}, ...]  length = 9
+  const headers = ctx.headers;
+  const rh = ctx.rh_header;
   // Background
-  rect(doc, MARGIN_LEFT, y, INNER_W, RH_HEADER, "headerBg");
-  // Vertical separators + top + bottom rules
+  rect(doc, MARGIN_LEFT, y, INNER_W, rh, "headerBg");
+  // Vertical + horizontal rules
   setRgb(doc, "headerFg");
   setLine(doc, 0.3);
-  for(const x of left){ line(doc, x, y, x, y + RH_HEADER); }
+  for(const x of left){ line(doc, x, y, x, y + rh); }
   line(doc, MARGIN_LEFT, y, right, y);
-  line(doc, MARGIN_LEFT, y + RH_HEADER, right, y + RH_HEADER);
+  line(doc, MARGIN_LEFT, y + rh, right, y + rh);
 
-  // Cell content: Arabic on top (~3mm), English below (~3.5mm), both
-  // single line, centered, white.
-  const cx = (a, b) => (a + b) / 2;
+  doc.setTextColor(COLOR_HEADER_FG[0], COLOR_HEADER_FG[1], COLOR_HEADER_FG[2]);
   for(let i=0; i<cols.length; i++){
-    const c = cols[i];
-    const midX = cx(left[i], left[i+1]);
-    const cellW = c.w - 1;
-
-    // --- Arabic: top, bold, white ---
-    doc.setFont(FONT_FAMILY, "bold");
-    let arSize = 7;
-    doc.setFontSize(arSize);
-    doc.setTextColor(0xFF, 0xFF, 0xFF);
-    const arStr = headers[i].ar;
-    while(arSize > 5.5 && arabicWidth(doc, arStr, arSize, true) > cellW){ arSize -= 0.5; doc.setFontSize(arSize); }
-    doc.text(arabicToDisplay(arStr), midX, y + 2.8, { align: "center" });
-
-    // --- English: bottom, regular, white, single line ---
+    const midX = (left[i] + left[i+1]) / 2;
+    const cellW = cols[i].w - 1.6;
+    const h = headers[i];
+    let by = y + 1.4;
+    const isAr = /[\u0600-\u06FF]/.test(String(h.ar));
+    if(isAr){
+      const lines = arabicLines(doc, h.ar, AR_HDR_SIZE, cellW);
+      doc.setFont(FONT_FAMILY, "bold");
+      doc.setFontSize(AR_HDR_SIZE);
+      for(const ln of lines){ doc.text(ln, midX, by, { align: "center" }); by += AR_HDR_LINE; }
+    }
+    const enLines = latinLines(doc, String(h.en), EN_HDR_SIZE, cellW);
     doc.setFont(FONT_FAMILY, "normal");
-    let enSize = 5.5;
-    doc.setFontSize(enSize);
-    const enStr = headers[i].en;
-    while(enSize > 4.5 && doc.getTextWidth(enStr) > cellW){ enSize -= 0.5; doc.setFontSize(enSize); }
-    doc.text(enStr, midX, y + 6, { align: "center" });
+    doc.setFontSize(EN_HDR_SIZE);
+    for(const ln of enLines){ doc.text(ln, midX, by, { align: "center" }); by += EN_HDR_LINE; }
   }
-
-  return y + RH_HEADER;
+  return y + rh;
 }
 
 // ---------- Category separator line (drawn when the category changes) ----------
@@ -432,7 +502,7 @@ function drawTableHeader(doc, ctx, y){
 function drawCategorySeparator(doc, ctx, y){
   const { right } = ctx.geom;
   setRgb(doc, "outer");
-  setLine(doc, 0.4);
+  setLine(doc, 0.45);
   line(doc, MARGIN_LEFT, y, right, y);
   return y;
 }
@@ -441,117 +511,108 @@ function drawCategorySeparator(doc, ctx, y){
 
 function drawProductRow(doc, ctx, y, row){
   const { cols, left, right } = ctx.geom;
-  // Row border (top)
+  // Row borders
   setRgb(doc, "border");
   setLine(doc, 0.2);
   line(doc, MARGIN_LEFT, y, right, y);
-  // Vertical separators
   for(const x of left){ line(doc, x, y, x, y + RH_PRODUCT); }
-  // Bottom rule
   line(doc, MARGIN_LEFT, y + RH_PRODUCT, right, y + RH_PRODUCT);
 
   const midY = y + RH_PRODUCT / 2;
 
   // Col 0: serial (centered)
   const c0cx = (left[0] + left[1]) / 2;
-  textLatin(doc, String(row.serial), c0cx, midY + 1, { size: 9, bold: true, align: "center" });
+  textLatin(doc, String(row.serial), c0cx, midY + 1.3, { size: 11, bold: true, align: "center" });
 
-  // Col 1: category (English, centered, small)
+  // Col 1: product name — Arabic FIRST (top, regular), English below
   const c1cx = (left[1] + left[2]) / 2;
-  textLatin(doc, row.catEn, c1cx, midY + 1, { size: 5.5, align: "center" });
-
-  // Col 2: product name (English top, Arabic bottom, centered)
-  const c2cx = (left[2] + left[3]) / 2;
-  const productCellW = left[3] - left[2] - 1;
-  // English name first (top): single line, centered
-  doc.setFont(FONT_FAMILY, "normal");
-  let enSize = 6.5;
-  doc.setFontSize(enSize);
+  const productCellW = left[2] - left[1] - 1.4;
+  let arSize = 11;
+  doc.setFont(FONT_FAMILY, "normal"); doc.setFontSize(arSize);
+  while(arSize > 6.5 && arabicWidth(doc, row.ar, arSize, false) > productCellW){ arSize -= 0.5; doc.setFontSize(arSize); }
+  textArabic(doc, row.ar, c1cx, y + 4.2, { size: arSize, bold: false, align: "center" });
+  // English name (second line, regular, shrink to fit one line)
+  let enSize = 9;
+  doc.setFont(FONT_FAMILY, "normal"); doc.setFontSize(enSize);
   const enStr = row.en;
-  while(enSize > 5 && doc.getTextWidth(enStr) > productCellW){ enSize -= 0.5; doc.setFontSize(enSize); }
-  doc.text(enStr, c2cx, y + 2.8, { align: "center" });
-  // Arabic name (bottom): shrink to fit if needed
-  doc.setFont(FONT_FAMILY, "bold");
-  let arSize = 8;
-  doc.setFontSize(arSize);
-  while(arSize > 6 && arabicWidth(doc, row.ar, arSize, true) > productCellW){ arSize -= 0.5; doc.setFontSize(arSize); }
-  textArabic(doc, row.ar, c2cx, y + 6, { size: arSize, bold: true, align: "center" });
+  while(enSize > 6 && doc.getTextWidth(enStr) > productCellW){ enSize -= 0.5; doc.setFontSize(enSize); }
+  textLatin(doc, enStr, c1cx, y + 8.2, { size: enSize, align: "center" });
 
-  // Col 3: requested qty (printed number)
-  const c3cx = (left[3] + left[4]) / 2;
-  textLatin(doc, String(row.requestedQty), c3cx, midY + 1, { size: 9, bold: true, align: "center" });
+  // Col 2: category (English, centered)
+  const c2cx = (left[2] + left[3]) / 2;
+  textLatin(doc, row.catEn, c2cx, midY + 1.2, { size: 8.5, align: "center" });
 
-  // Cols 4..8: bordered input boxes for handwriting, centered
-  for(let i=4; i<9; i++){
-    const cxc = (left[i] + left[i+1]) / 2;
-    const bx = cxc - INPUT_BOX_W/2;
-    const by = y + (RH_PRODUCT - INPUT_BOX_H) / 2;
-    setRgb(doc, "border");
-    setLine(doc, 0.2);
-    doc.rect(bx, by, INPUT_BOX_W, INPUT_BOX_H);
+  // Col 3: requested qty — system data, printed automatically when > 0
+  if(row.requestedQty > 0){
+    const c3cx = (left[3] + left[4]) / 2;
+    textLatin(doc, String(row.requestedQty), c3cx, midY + 1.3, { size: 11, bold: true, align: "center" });
   }
+
+  // Cols 4..5 (Delivered, Available): left empty for manual handwriting.
+  // Cols 6..8 (Expired, No Expiry, Near Expiry): empty for manual entry,
+  // or "-" for products flagged as having no expiry date.
+  if(row.noExpiry){
+    for(let i=6; i<9; i++){
+      const cxc = (left[i] + left[i+1]) / 2;
+      textLatin(doc, "-", cxc, midY + 1.3, { size: 10, bold: true, align: "center" });
+    }
+  }
+
   return y + RH_PRODUCT;
 }
 
-// ---------- Footer (last page only) ----------
+// ---------- Footer (last page only): delivery date + signature frame ----------
 
 function drawFooter(doc, ctx){
-  let y = ctx.cursorY + 6;
+  let y = ctx.cursorY + 5;
   const cx = A4_W / 2;
 
-  // Delivery & inventory date label + empty box
-  textLatin(doc, ctx.deliveryDateLabel, cx, y, { size: 11, bold: true, align: "center" });
-  const boxW = 50, boxH = 10;
+  // Delivery & inventory date — bilingual label + empty handwriting box
+  textArabic(doc, ctx.deliveryDateLabelAr, cx, y, { size: 10, bold: true, align: "center" });
+  textLatin(doc, ctx.deliveryDateLabelEn, cx, y + 3.4, { size: 8, align: "center" });
+  const boxW = 60, boxH = 8;
   setRgb(doc, "border");
   setLine(doc, 0.3);
-  doc.rect(cx - boxW/2, y + 2, boxW, boxH);
-  y += 2 + boxH + 6;
+  doc.rect(cx - boxW/2, y + 4.6, boxW, boxH);
 
-  // Signature area: 2 columns — smaller boxes, no outer rectangle
-  const blockW = INNER_W;
-  const blockH = 22;
-  // Vertical separator between the two signature columns
-  const midX = MARGIN_LEFT + blockW/2;
-  setRgb(doc, "border");
-  setLine(doc, 0.25);
-  line(doc, midX, y, midX, y + blockH);
+  // Signature frame: single outer rectangle, split in two by a vertical
+  // rule.  RIGHT half = Branch Manager, LEFT half = Branch Inspector.
+  y += 14.2;
+  const frameX = MARGIN_LEFT;
+  const frameW = INNER_W;
+  const frameH = 27;
+  setRgb(doc, "outer");
+  setLine(doc, 0.5);
+  doc.rect(frameX, y, frameW, frameH);
+  const midX = frameX + frameW / 2;
+  setLine(doc, 0.35);
+  line(doc, midX, y, midX, y + frameH);
 
-  // Right column (Branch Manager)
-  drawSignatureColumn(doc, ctx.signMgrLabel, ctx.signatureLabel, MARGIN_LEFT, y, blockW/2, blockH, /*rtl*/ true);
-  // Left column (Branch Inspector)
-  drawSignatureColumn(doc, ctx.signInspLabel, ctx.signatureLabel, midX, y, blockW/2, blockH, /*rtl*/ false);
+  const rightCx = frameX + frameW * 0.75;
+  const leftCx  = frameX + frameW * 0.25;
+  drawSigHalf(doc, ctx, ctx.signMgrLabelAr, ctx.signMgrLabelEn, midX + 2, y, frameW/2 - 2, rightCx);
+  drawSigHalf(doc, ctx, ctx.signInspLabelAr, ctx.signInspLabelEn, frameX + 2, y, frameW/2 - 2, leftCx);
 }
 
-function drawSignatureColumn(doc, nameLabel, sigLabel, x, y, w, h, rtl){
-  // Name label (bold)
-  if(rtl){
-    textArabic(doc, nameLabel, x + w - 2, y + 4, { size: 10, bold: true, align: "right" });
-  } else {
-    textLatin(doc, nameLabel, x + 2, y + 4, { size: 10, bold: true, align: "left" });
-  }
-  // Name line
+function drawSigHalf(doc, ctx, nameAr, nameEn, x, y, w, centerX){
+  // Name label (bilingual)
+  textArabic(doc, nameAr, centerX, y + 7, { size: 10.5, bold: true, align: "center" });
+  textLatin(doc, nameEn, centerX, y + 10.5, { size: 7.5, align: "center" });
+  // Signature area label (bilingual) — "beside/under the name"
+  textArabic(doc, ctx.signatureLabelAr, centerX, y + 18.5, { size: 9, align: "center" });
+  textLatin(doc, ctx.signatureLabelEn, centerX, y + 21.5, { size: 7, align: "center" });
+  // Name line + signature line
   setRgb(doc, "border");
-  setLine(doc, 0.25);
-  const nameY = y + 9;
-  line(doc, x + 4, nameY, x + w - 4, nameY);
-
-  // Signature label
-  const sigY = y + 12;
-  if(rtl){
-    textArabic(doc, sigLabel, x + w - 2, sigY, { size: 9, align: "right" });
-  } else {
-    textLatin(doc, sigLabel, x + 2, sigY, { size: 9, align: "left" });
-  }
-  // Signature line
-  const sigLineY = y + 17;
-  line(doc, x + 4, sigLineY, x + w - 4, sigLineY);
+  setLine(doc, 0.3);
+  line(doc, x + 8, y + 14.5, x + w - 8, y + 14.5);
+  line(doc, x + 8, y + 25.5, x + w - 8, y + 25.5);
 }
 
-// ---------- Page number ----------
+// ---------- Page number (bottom-right: "1 of 6") ----------
 
 function drawPageNumber(doc, total, cur){
   setRgb(doc, "text");
-  textLatin(doc, `Page ${cur} of ${total}`, A4_W - MARGIN_RIGHT, A4_H - MARGIN_BOTTOM + 8, { size: 9, align: "right" });
+  textLatin(doc, `${cur} of ${total}`, A4_W - MARGIN_RIGHT, A4_H - MARGIN_BOTTOM + 8, { size: 9, align: "right" });
 }
 
 // ---------- Main build ----------
@@ -562,7 +623,6 @@ export async function generateInventoryReportPdf(inputs){
   const { jsPDF } = window.jspdf;
   const labels = inputs.labels || {};
   const t = (k) => labels[k] || k;
-  const lang = inputs.lang || "ar";
 
   // === Build product rows in category order, with cart first then 0-qty ===
   const cartIds = new Set((inputs.cart || []).map(c => String(c.id)));
@@ -590,8 +650,6 @@ export async function generateInventoryReportPdf(inputs){
   CAT_ORDER.forEach(c => { if(groups[c] && groups[c].length) orderedCats.push(c); });
   Object.keys(groups).forEach(c => { if(!orderedCats.includes(c)) orderedCats.push(c); });
 
-  // For each category: in-cart (preserve order), then not-in-cart
-  // Every row carries its Category in the dedicated Category column.
   const rows = [];
   let serial = 0;
   for(const cat of orderedCats){
@@ -609,13 +667,13 @@ export async function generateInventoryReportPdf(inputs){
         ar: p.name || "",
         en: p.description || p.nameEn || p.name || "",
         requestedQty: c ? (c.qty || 0) : 0,
+        noExpiry: !!p.noExpiry,
       });
     }
   }
 
   // === PDF setup ===
   const doc = new jsPDF({ unit:"mm", format:"a4", orientation:"portrait", putOnlyUsedFonts:true });
-  // Set white page background
   setFill(doc, "pageBg");
   doc.rect(0, 0, A4_W, A4_H, "F");
 
@@ -642,32 +700,45 @@ export async function generateInventoryReportPdf(inputs){
   const ctx = {
     geom: makeCols(),
     titleAr: t("rptTitleAr") || "تقرير جرد وتسليم منتجات",
-    titleEn: t("rptTitleEn") || "Branch Products Monitoring Report",
-    subHeaderEn: t("rptSubHeaderEn") || "Products Delivery & Inventory Report",
+    titleEn: t("rptTitleEn") || "Products Inventory & Delivery Report",
+    subHeaderEn: t("rptSubHeaderEn") || "Products Inventory & Delivery Report",
     branch: (inputs.customer && inputs.customer.branch) || "",
     orderDate: inputs.dateStr || "",
     user: (inputs.customer && inputs.customer.name) || "",
-    deliveryDateLabel: t("rptDeliveryDateEn") || "Delivery & Inventory Date",
-    signMgrLabel:  t("rptBranchMgrEn")  || "Branch Manager Name",
-    signInspLabel: t("rptBranchInspEn") || "Branch Inspector Name",
-    signatureLabel: t("rptSignatureEn") || "Signature",
+    branchLabelAr: t("rptBranchAr")   || "اسم الفرع",
+    branchLabelEn: t("rptBranchEn")   || "Branch Name",
+    dateLabelAr:   t("rptOrderDateAr")|| "تاريخ إنشاء التقرير",
+    dateLabelEn:   t("rptOrderDateEn")|| "Report Creation Date",
+    userLabelAr:   t("rptUserAr")     || "اسم صاحب الطلب",
+    userLabelEn:   t("rptUserEn")     || "Requester Name",
+    deliveryDateLabelAr: t("rptDeliveryDateAr") || "تاريخ التسليم والجرد",
+    deliveryDateLabelEn: t("rptDeliveryDateEn") || "Delivery & Inventory Date",
+    signMgrLabelAr:  t("rptBranchMgrAr")  || "اسم مدير الفرع",
+    signMgrLabelEn:  t("rptBranchMgrEn")  || "Branch Manager Name",
+    signInspLabelAr: t("rptBranchInspAr") || "اسم مفتش الفرع",
+    signInspLabelEn: t("rptBranchInspEn") || "Branch Inspector Name",
+    signatureLabelAr: t("rptSignatureAr") || "التوقيع",
+    signatureLabelEn: t("rptSignatureEn") || "Signature",
     headers: [
-      { ar: t("rptColNoAr")        || "م",       en: t("rptColNoEn")        || "No." },
-      { ar: t("rptColCategoryAr")  || "القسم",  en: t("rptColCategoryEn")  || "Category" },
-      { ar: t("rptColProductAr")   || "المنتج", en: t("rptColProductEn")   || "Product" },
-      { ar: t("rptColRequestedAr") || "المطلوب",en: t("rptColRequestedEn") || "Requested" },
-      { ar: t("rptColDeliveredAr") || "المسلم", en: t("rptColDeliveredEn") || "Delivered" },
-      { ar: t("rptColAvailableAr") || "المتوفر",en: t("rptColAvailableEn") || "Available" },
-      { ar: t("rptColExpiredAr")   || "المنتهي",en: t("rptColExpiredEn")   || "Expired" },
-      { ar: t("rptColNoExpiryAr")  || "بدون صلاحية", en: t("rptColNoExpiryEn")  || "No Expiry" },
-      { ar: t("rptColNearExpiryAr")|| "قارب الانتهاء", en: t("rptColNearExpiryEn") || "Near Expiry" },
+      { ar: t("rptColNoAr")        || "م",                            en: t("rptColNoEn")        || "No." },
+      { ar: t("rptColProductAr")   || "المنتج",                       en: t("rptColProductEn")   || "Product" },
+      { ar: t("rptColCategoryAr")  || "القسم",                        en: t("rptColCategoryEn")  || "Category" },
+      { ar: t("rptColRequestedAr") || "عدد المنتجات التي طلبها الفرع",en: t("rptColRequestedEn") || "Number of Products Requested by Branch" },
+      { ar: t("rptColDeliveredAr") || "عدد المنتجات المسلمة للفرع",   en: t("rptColDeliveredEn") || "Number of Products Delivered to Branch" },
+      { ar: t("rptColAvailableAr") || "عدد المنتجات الموجودة بالفرع بعد التسليم", en: t("rptColAvailableEn") || "Number of Products Available in Branch After Delivery" },
+      { ar: t("rptColExpiredAr")   || "عدد المنتجات المنتهية الصلاحية", en: t("rptColExpiredEn")   || "Number of Expired Products" },
+      { ar: t("rptColNoExpiryAr")  || "عدد المنتجات التي لا تحمل تاريخ صلاحية", en: t("rptColNoExpiryEn")  || "Number of Products Without Expiry Date" },
+      { ar: t("rptColNearExpiryAr")|| "عدد المنتجات التي بقي على صلاحيتها أقل من أسبوع", en: t("rptColNearExpiryEn") || "Number of Products with Less Than One Week Until Expiry" },
     ],
     logoDataUrl,
   };
+  ctx.rh_header = computeHeaderHeight(doc, ctx);
 
   // First page
   let cursorY = drawFirstPageHeader(doc, ctx);
   cursorY = drawTableHeader(doc, ctx, cursorY);
+
+  const bottomLimit = A4_H - MARGIN_BOTTOM;
 
   // If we have no rows, leave a "no products" note
   if(rows.length === 0){
@@ -678,17 +749,12 @@ export async function generateInventoryReportPdf(inputs){
     let prevCat = null;
     for(let i=0; i<rows.length; i++){
       const r = rows[i];
-      // Page break: if the next product doesn't fit, start a new page
-      const bottomLimit = A4_H - MARGIN_BOTTOM;
       if(cursorY + RH_PRODUCT > bottomLimit){
         doc.addPage();
-        cursorY = drawSubPageHeader(doc, ctx, doc.getNumberOfPages());
+        cursorY = drawSubPageHeader(doc, ctx);
         cursorY = drawTableHeader(doc, ctx, cursorY);
-        // after a page break, we also need a category separator if the
-        // category changes right at the page boundary
         prevCat = null;
       }
-      // Draw a separator line when the category changes
       if(prevCat !== null && prevCat !== r.catEn){
         cursorY = drawCategorySeparator(doc, ctx, cursorY);
       }
@@ -697,27 +763,20 @@ export async function generateInventoryReportPdf(inputs){
     }
   }
 
-  // Footer (last page only)
+  // Footer — last page only.  If there is no room, push it to its own page.
   ctx.cursorY = cursorY;
-  // Reserve space for the footer block.  If not enough, push to a new page.
-  if(cursorY + FOOTER_BAND_H > A4_H - MARGIN_BOTTOM){
+  if(cursorY + FOOTER_BAND_H > bottomLimit){
     doc.addPage();
-    cursorY = drawSubPageHeader(doc, ctx, doc.getNumberOfPages());
-    cursorY = drawTableHeader(doc, ctx, cursorY);
+    cursorY = drawSubPageHeader(doc, ctx);
     ctx.cursorY = cursorY;
   }
   drawFooter(doc, ctx);
 
-  // Page numbers on every page; the continuation-page sub-header also
-  // carries a "Page X of N" label on the right, drawn now that the total
-  // page count is known.
+  // Page numbers — bottom right on every page, "1 of N".
   const total = doc.getNumberOfPages();
   for(let p = 1; p <= total; p++){
     doc.setPage(p);
     drawPageNumber(doc, total, p);
-    if(p >= 2){
-      textLatin(doc, `Page ${p} of ${total}`, A4_W - MARGIN_RIGHT, MARGIN_TOP + 3, { size: 8, align: "right" });
-    }
   }
 
   // Save
