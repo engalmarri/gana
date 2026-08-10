@@ -6,10 +6,10 @@
 
 const A4 = { width: 794, height: 1123 };
 const PAGE_MARGIN = 24;
-const ROW_HEIGHT = 42;
-const FIRST_HEADER_HEIGHT = 195;
-const CONTINUED_HEADER_HEIGHT = 58;
-const FOOTER_HEIGHT = 182;
+const ROW_HEIGHT = 28;
+const FIRST_HEADER_HEIGHT = 155;
+const CONTINUED_HEADER_HEIGHT = 84;
+const FOOTER_HEIGHT = 150;
 
 const CATEGORY_NAMES = {
   "قسم المعمل": "Lab",
@@ -95,67 +95,59 @@ function reportStyles(){
     @page { size: A4 portrait; margin: 0; }
     .inventory-report-page { width:${A4.width}px; height:${A4.height}px; box-sizing:border-box; padding:${PAGE_MARGIN}px; background:#fff; color:#202124; font-family:Tahoma, Arial, sans-serif; font-size:10px; line-height:1.15; position:relative; overflow:hidden; }
     .inventory-report-page * { box-sizing:border-box; }
-    .report-top { min-height:164px; border-bottom:2px solid #4b5563; padding-bottom:8px; }
-    .report-brand { height:38px; display:flex; align-items:center; justify-content:center; }
-    .report-brand img { max-height:30px; max-width:118px; object-fit:contain; }
-    .report-title { text-align:center; margin:2px 0 8px; }
-    .report-title .ar { direction:rtl; unicode-bidi:plaintext; font-size:17px; font-weight:700; }
-    .report-title .en { direction:ltr; font-size:12px; font-weight:700; margin-top:2px; }
-    .report-info { display:grid; grid-template-columns:1fr 1fr; gap:10px; border:1px solid #b8bec5; background:#f1f3f5; padding:7px 9px; min-height:77px; }
-    .report-field { min-width:0; }
-    .report-field.right { text-align:right; direction:rtl; unicode-bidi:plaintext; }
-    .report-field.left { text-align:left; direction:ltr; }
-    .report-label-ar { font-size:9px; font-weight:700; direction:rtl; unicode-bidi:plaintext; }
-    .report-label-en { font-size:8px; font-weight:700; direction:ltr; margin-top:1px; }
-    .report-value { font-size:10px; font-weight:700; margin-top:4px; overflow-wrap:anywhere; unicode-bidi:plaintext; }
+    .report-top { height:92px; border-bottom:1.5px solid #4b5563; position:relative; padding-top:3px; }
+    .report-brand { height:25px; display:flex; align-items:center; justify-content:center; }
+    .report-brand img { max-height:21px; max-width:94px; object-fit:contain; }
+    .report-title { text-align:center; margin:1px 135px 0; }
+    .report-title .ar { direction:rtl; unicode-bidi:plaintext; font-size:14px; font-weight:700; }
+    .report-title .en { direction:ltr; font-size:10px; font-weight:700; margin-top:1px; }
+    .report-meta { position:absolute; top:4px; min-width:145px; font-size:10px; font-weight:700; line-height:1.25; unicode-bidi:plaintext; }
+    .report-meta.branch { left:0; direction:ltr; text-align:left; }
+    .report-meta.customer { right:0; direction:rtl; text-align:right; }
+    .report-meta.customer .label { direction:ltr; font-size:8px; font-weight:700; margin-bottom:2px; }
     .report-table { width:100%; border-collapse:collapse; table-layout:fixed; margin-top:8px; direction:ltr; }
-    .report-table th { height:53px; background:#4b5563; color:#fff; padding:3px 2px; border:1px solid #fff; text-align:center; vertical-align:middle; font-weight:700; }
-    .report-table th .ar { display:block; direction:rtl; unicode-bidi:plaintext; font-size:7px; line-height:1.12; }
-    .report-table th .en { display:block; direction:ltr; font-size:5.5px; line-height:1.1; font-weight:400; margin-top:2px; overflow-wrap:anywhere; }
-    .report-table td { height:${ROW_HEIGHT}px; padding:2px 3px; border:1px solid #b8bec5; text-align:center; vertical-align:middle; overflow:hidden; }
+    .report-table th { height:51px; background:#4b5563; color:#fff; padding:2px 1px; border:1px solid #fff; text-align:center; vertical-align:middle; font-weight:700; }
+    .report-table th .ar { display:block; direction:rtl; unicode-bidi:plaintext; font-size:5.7px; line-height:1.06; }
+    .report-table th .en { display:block; direction:ltr; font-size:4.6px; line-height:1.04; font-weight:400; margin-top:1px; overflow-wrap:anywhere; }
+    .report-table td { height:${ROW_HEIGHT}px; padding:1px 1px; border:1px solid #b8bec5; text-align:center; vertical-align:middle; overflow:hidden; font-size:10px; }
     .report-table td.product { text-align:center; }
-    .product-ar { direction:rtl; unicode-bidi:plaintext; font-size:10px; font-weight:400; line-height:1.12; overflow-wrap:anywhere; }
-    .product-en { direction:ltr; font-size:8px; line-height:1.1; margin-top:2px; overflow-wrap:anywhere; }
-    .category { direction:ltr; font-size:8px; overflow-wrap:anywhere; }
-    .manual-cell { position:relative; }
-    .manual-cell::after { content:""; position:absolute; width:15px; height:13px; border:1px solid #aeb5bd; border-radius:2px; left:50%; top:50%; transform:translate(-50%,-50%); }
+    .product-ar { direction:rtl; unicode-bidi:plaintext; font-size:10px; font-weight:400; line-height:1.02; overflow-wrap:anywhere; }
+    .product-en { direction:ltr; font-size:7px; line-height:1; margin-top:1px; overflow-wrap:anywhere; }
+    .category { direction:ltr; font-size:10px; overflow-wrap:anywhere; }
+    .manual-cell { padding:0 !important; }
     .no-expiry { font-size:12px; font-weight:700; }
-    .continued-head { height:26px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #b8bec5; font-size:9px; font-weight:700; }
+    .continued-head { height:25px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #b8bec5; font-size:8px; font-weight:700; }
     .continued-head .ar { direction:rtl; unicode-bidi:plaintext; }
     .report-footer { margin-top:8px; }
-    .delivery-date { text-align:center; font-weight:700; margin:4px 0 7px; }
-    .delivery-date .ar { direction:rtl; unicode-bidi:plaintext; font-size:10px; }
-    .delivery-date .en { direction:ltr; font-size:8px; margin-top:2px; }
-    .date-box { width:106px; height:17px; border:1px solid #8e969f; margin:4px auto 0; }
-    .signatures { height:93px; display:grid; grid-template-columns:1fr 1fr; border:1.5px solid #626a73; }
-    .signature-half { padding:8px 13px; text-align:center; }
+    .delivery-date { text-align:center; font-weight:700; margin:3px 0 5px; }
+    .delivery-date .en { direction:ltr; font-size:9px; }
+    .delivery-date .ar { direction:rtl; unicode-bidi:plaintext; font-size:7px; margin-top:1px; }
+    .date-box { width:92px; height:14px; border:1px solid #8e969f; margin:3px auto 0; }
+    .signatures { height:79px; display:grid; grid-template-columns:1fr 1fr; border:1.5px solid #626a73; }
+    .signature-half { padding:6px 13px; text-align:center; }
     .signature-half + .signature-half { border-left:1px solid #626a73; }
-    .signature-title-ar { direction:rtl; unicode-bidi:plaintext; font-size:11px; font-weight:700; }
-    .signature-title-en { direction:ltr; font-size:8px; margin-top:2px; }
-    .signature-label { margin-top:15px; direction:rtl; unicode-bidi:plaintext; font-size:9px; }
-    .signature-label .en { direction:ltr; font-size:7px; margin-top:2px; }
-    .signature-line { border-bottom:1px solid #8e969f; margin:5px 12px 0; }
-    .page-number { position:absolute; right:${PAGE_MARGIN}px; bottom:12px; direction:ltr; font-size:9px; }
+    .signature-title-ar { direction:rtl; unicode-bidi:plaintext; font-size:9px; font-weight:700; }
+    .signature-title-en { direction:ltr; font-size:7px; margin-top:1px; }
+    .signature-label { margin-top:10px; direction:rtl; unicode-bidi:plaintext; font-size:8px; }
+    .signature-label .en { direction:ltr; font-size:6px; margin-top:1px; }
+    .signature-line { border-bottom:1px solid #8e969f; margin:3px 12px 0; }
+    .page-number { position:absolute; right:${PAGE_MARGIN}px; bottom:6px; direction:ltr; font-size:8px; background:#fff; padding-left:3px; }
   `;
 }
 
-function field(ar, en, value, side){
-  return `<div class="report-field ${side}"><div class="report-label-ar">${escapeHtml(ar)}</div><div class="report-label-en">${escapeHtml(en)}</div><div class="report-value">${escapeHtml(value)}</div></div>`;
-}
-
-function tableHeaders(t){
+function tableHeaders(){
   const headers = [
-    [t("rptColNoAr", "م"), t("rptColNoEn", "No.")],
-    [t("rptColProductAr", "المنتج"), t("rptColProductEn", "Product")],
-    [t("rptColCategoryAr", "القسم"), t("rptColCategoryEn", "Category")],
-    [t("rptColRequestedAr", "عدد المنتجات التي طلبها الفرع"), t("rptColRequestedEn", "Number of Products Requested by Branch")],
-    [t("rptColDeliveredAr", "عدد المنتجات المسلمة للفرع"), t("rptColDeliveredEn", "Number of Products Delivered to Branch")],
-    [t("rptColAvailableAr", "عدد المنتجات الموجودة بالفرع بعد التسليم"), t("rptColAvailableEn", "Number of Products Available in Branch After Delivery")],
-    [t("rptColExpiredAr", "عدد المنتجات المنتهية الصلاحية"), t("rptColExpiredEn", "Number of Expired Products")],
-    [t("rptColNoExpiryAr", "عدد المنتجات التي لا تحمل تاريخ صلاحية"), t("rptColNoExpiryEn", "Number of Products Without Expiry Date")],
-    [t("rptColNearExpiryAr", "عدد المنتجات التي بقي على صلاحيتها أقل من أسبوع"), t("rptColNearExpiryEn", "Number of Products with Less Than One Week Until Expiry")],
+    ["م", "No."],
+    ["المنتج", "Product"],
+    ["القسم", "Category"],
+    ["عدد المنتجات التي طلبها الفرع", "Number of Products Requested by Branch"],
+    ["عدد المنتجات المسلمة للفرع", "Number of Products Delivered to Branch"],
+    ["عدد المنتجات الموجودة بالفرع بعد التسليم", "Number of Products Available in Branch After Delivery"],
+    ["عدد المنتجات المنتهية الصلاحية", "Number of Expired Products"],
+    ["عدد المنتجات التي لا تحمل تاريخ صلاحية", "Number of Products Without Expiry Date"],
+    ["عدد المنتجات التي بقي على صلاحيتها أقل من أسبوع", "Number of Products with Less Than One Week Until Expiry"],
   ];
-  const widths = ["3.5%", "20%", "8%", "9%", "9%", "11%", "9%", "11%", "19.5%"];
+  const widths = ["3.5%", "33%", "10%", "7%", "7%", "8%", "7%", "8%", "16.5%"];
   return `<colgroup>${widths.map(width => `<col style="width:${width}">`).join("")}</colgroup><thead><tr>${headers.map(([ar, en]) => `<th><span class="ar">${escapeHtml(ar)}</span><span class="en">${escapeHtml(en)}</span></th>`).join("")}</tr></thead>`;
 }
 
@@ -167,24 +159,24 @@ function tableRows(rows){
   }).join("")}</tbody>`;
 }
 
-function footer(t){
-  const dateAr = t("rptDeliveryDateAr", "تاريخ التسليم والجرد");
-  const dateEn = t("rptDeliveryDateEn", "Delivery & Inventory Date");
-  const managerAr = t("rptBranchMgrAr", "اسم مدير الفرع");
-  const managerEn = t("rptBranchMgrEn", "Branch Manager Name");
-  const inspectorAr = t("rptBranchInspAr", "اسم مفتش الفرع");
-  const inspectorEn = t("rptBranchInspEn", "Branch Inspector Name");
-  const signatureAr = t("rptSignatureAr", "التوقيع");
-  const signatureEn = t("rptSignatureEn", "Signature");
+function footer(){
+  const dateAr = "تاريخ التسليم والجرد";
+  const dateEn = "Delivery & Inventory Date";
+  const managerAr = "اسم مدير الفرع";
+  const managerEn = "Branch Manager Name";
+  const inspectorAr = "اسم مفتش الفرع";
+  const inspectorEn = "Branch Inspector Name";
+  const signatureAr = "التوقيع";
+  const signatureEn = "Signature";
   const half = (ar, en) => `<div class="signature-half"><div class="signature-title-ar">${escapeHtml(ar)}</div><div class="signature-title-en">${escapeHtml(en)}</div><div class="signature-line"></div><div class="signature-label">${escapeHtml(signatureAr)}<div class="en">${escapeHtml(signatureEn)}</div></div><div class="signature-line"></div></div>`;
-  return `<footer class="report-footer"><div class="delivery-date"><div class="ar">${escapeHtml(dateAr)}</div><div class="en">${escapeHtml(dateEn)}</div><div class="date-box"></div></div><div class="signatures">${half(inspectorAr, inspectorEn)}${half(managerAr, managerEn)}</div></footer>`;
+  return `<footer class="report-footer"><div class="delivery-date"><div class="en">${escapeHtml(dateEn)}</div><div class="ar">${escapeHtml(dateAr)}</div><div class="date-box"></div></div><div class="signatures">${half(inspectorAr, inspectorEn)}${half(managerAr, managerEn)}</div></footer>`;
 }
 
 function pageMarkup({ rows, first, last, pageNumber, total, ctx, t }){
   const header = first
-    ? `<header class="report-top"><div class="report-brand"><img src="images/logo.png" alt="Logo"></div><div class="report-title"><div class="ar">${escapeHtml(t("rptTitleAr", "تقرير جرد وتسليم منتجات"))}</div><div class="en">${escapeHtml(t("rptTitleEn", "Products Inventory & Delivery Report"))}</div></div><div class="report-info">${field(t("rptBranchAr", "اسم الفرع"), t("rptBranchEn", "Branch Name"), ctx.branch, "left")}<div>${field(t("rptOrderDateAr", "تاريخ إنشاء التقرير"), t("rptOrderDateEn", "Report Creation Date"), ctx.date, "right")}${field(t("rptUserAr", "اسم صاحب الطلب"), t("rptUserEn", "Requester Name"), ctx.user, "right")}</div></div></header>`
-    : `<header class="continued-head"><span>${escapeHtml(t("rptSubHeaderEn", "Products Inventory & Delivery Report"))}</span><span class="ar">${escapeHtml(t("rptSubHeaderAr", "تقرير جرد وتسليم منتجات"))}</span></header>`;
-  return `<section class="inventory-report-page">${header}<table class="report-table">${tableHeaders(t)}${tableRows(rows)}</table>${last ? footer(t) : ""}<div class="page-number">${pageNumber} of ${total}</div></section>`;
+    ? `<header class="report-top"><div class="report-meta branch">${escapeHtml(ctx.branch)}<br>${escapeHtml(ctx.date)}</div><div class="report-meta customer"><div class="label">Customer</div>${escapeHtml(ctx.user)}</div><div class="report-brand"><img src="images/logo.png" alt="Logo"></div><div class="report-title"><div class="ar">تقرير جرد وتسليم منتجات</div><div class="en">Products Inventory & Delivery Report</div></div></header>`
+    : `<header class="continued-head"><span>Products Inventory & Delivery Report</span><span class="ar">تقرير جرد وتسليم منتجات</span></header>`;
+  return `<section class="inventory-report-page">${header}<table class="report-table">${tableHeaders()}${tableRows(rows)}</table>${last ? footer() : ""}<div class="page-number">${pageNumber} of ${total}</div></section>`;
 }
 
 async function renderPageToPdf(doc, html, pageIndex){
