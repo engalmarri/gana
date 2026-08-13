@@ -1,6 +1,6 @@
 import { db } from "./firebase.js";
 import { generateInvoicePdf } from "./invoice-pdf.js?v=20260803";
-import { generateInventoryReportPdf } from "./native-pdf.js?v=20260810-2";
+import { generateInventoryReportPdf } from "./native-pdf.js?v=20260813";
 import {
   collection, addDoc, getDoc, getDocs, updateDoc, doc,
   query, where, orderBy, serverTimestamp, Timestamp
@@ -565,7 +565,108 @@ async function createInvoice(){
   await saveInvoiceToFirestore(no,currentCustomer.name);
 }
 
-/* === Branch Products Monitoring (Inventory) Report === */
+/* === Branch Products Monitoring (Inventory) Report → PDF → Share === */
+const sharePdfOverlayEl=document.getElementById("sharePdfOverlay");
+const sharePdfIconEl=document.getElementById("sharePdfIcon");
+const sharePdfTitleEl=document.getElementById("sharePdfTitle");
+const sharePdfMsgEl=document.getElementById("sharePdfMsg");
+const sharePdfDownloadBtn=document.getElementById("sharePdfDownload");
+const sharePdfShareBtn=document.getElementById("sharePdfShare");
+const sharePdfCloseBtn=document.getElementById("sharePdfClose");
+
+function resetPdfOverlayUI(){
+  if(sharePdfIconEl){sharePdfIconEl.className="share-pdf-icon";sharePdfIconEl.innerHTML='<span class="share-spinner"></span>';}
+  if(sharePdfDownloadBtn){sharePdfDownloadBtn.style.display="none";}
+  if(sharePdfShareBtn){sharePdfShareBtn.style.display="none";sharePdfShareBtn.disabled=false;}
+  if(sharePdfCloseBtn){sharePdfCloseBtn.style.display="none";}
+}
+function nextPaint(){ return new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); }
+function openPdfOverlay(){
+  if(!sharePdfOverlayEl)return;
+  sharePdfOverlayEl.hidden=false;
+  sharePdfOverlayEl.setAttribute("aria-hidden","false");
+  sharePdfOverlayEl.style.display="flex";
+  requestAnimationFrame(()=>sharePdfOverlayEl.classList.add("active"));
+}
+function closePdfOverlay(){
+  if(!sharePdfOverlayEl)return;
+  sharePdfOverlayEl.classList.remove("active");
+  sharePdfOverlayEl.setAttribute("aria-hidden","true");
+  setTimeout(()=>{sharePdfOverlayEl.hidden=true;sharePdfOverlayEl.style.display="";},200);
+}
+async function showPdfOverlayStatus(msg,title){
+  resetPdfOverlayUI();
+  openPdfOverlay();
+  if(sharePdfTitleEl)sharePdfTitleEl.textContent=title||t("shareTitle");
+  if(sharePdfMsgEl)sharePdfMsgEl.textContent=msg;
+  await nextPaint();
+}
+function downloadPdfFile(file){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(file);
+  a.download=file.name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+function showPdfOverlayReady(file){
+  if(!sharePdfOverlayEl)return;
+  const canShare=supportsFileSharing();
+  if(sharePdfIconEl){sharePdfIconEl.className="share-pdf-icon";sharePdfIconEl.innerHTML=canShare?'<i data-lucide="share-2"></i>':'<i data-lucide="download"></i>';}
+  if(sharePdfTitleEl)sharePdfTitleEl.textContent=canShare?t("shareReadyTitle"):t("shareFallbackTitle");
+  if(sharePdfMsgEl)sharePdfMsgEl.textContent=canShare?t("shareReadyMsg"):t("shareFallbackMsg");
+  if(sharePdfShareBtn){
+    if(canShare){
+      sharePdfShareBtn.style.display="flex";
+      sharePdfShareBtn.onclick=async()=>{
+        sharePdfShareBtn.disabled=true;
+        await nativeShare(file);
+        sharePdfShareBtn.disabled=false;
+      };
+    }else{ sharePdfShareBtn.style.display="none"; }
+  }
+  if(sharePdfDownloadBtn){
+    sharePdfDownloadBtn.style.display="flex";
+    sharePdfDownloadBtn.onclick=()=>{ downloadPdfFile(file); };
+  }
+  if(sharePdfCloseBtn)sharePdfCloseBtn.style.display="flex";
+  if(window.lucide?.createIcons)window.lucide.createIcons();
+}
+function showPdfOverlayError(msg){
+  if(!sharePdfOverlayEl)return;
+  if(sharePdfIconEl){sharePdfIconEl.className="share-pdf-icon share-pdf-icon--error";sharePdfIconEl.innerHTML='<i data-lucide="alert-triangle"></i>';}
+  if(sharePdfTitleEl)sharePdfTitleEl.textContent=t("shareErrorTitle");
+  if(sharePdfMsgEl)sharePdfMsgEl.textContent=msg||t("shareFailureMsg");
+  if(sharePdfCloseBtn)sharePdfCloseBtn.style.display="flex";
+  if(sharePdfDownloadBtn)sharePdfDownloadBtn.style.display="none";
+  if(window.lucide?.createIcons)window.lucide.createIcons();
+}
+sharePdfCloseBtn?.addEventListener("click",closePdfOverlay);
+sharePdfOverlayEl?.addEventListener("click",e=>{if(e.target===sharePdfOverlayEl)closePdfOverlay();});
+
+function supportsFileSharing(){
+  return typeof navigator.share==="function" && typeof navigator.canShare==="function";
+}
+async function nativeShare(file){
+  if(!supportsFileSharing()) return false;
+  const shareData={files:[file],title:file.name,text:file.name};
+  if(!navigator.canShare(shareData)) return false;
+  try{
+    await showPdfOverlayStatus(t("sharePreparing"));
+    await navigator.share(shareData);
+    closePdfOverlay();
+    return true;
+  }catch(e){
+    if(e && e.name==="AbortError"){ closePdfOverlay(); return true; }
+    console.warn("Web Share API failed:",e);
+    return false;
+  }
+}
+async function sharePdfFile(file){
+  if(await nativeShare(file)) return true;
+  showPdfOverlayReady(file);
+  return false;
+}
+
 async function generateInventoryReport(){
   if(!currentCustomer){
     alert(t("loginFirst") || "Login first");
@@ -573,6 +674,7 @@ async function generateInventoryReport(){
     return;
   }
   try {
+    await showPdfOverlayStatus(t("shareGenerating"));
     const allProducts = await loadAllProducts();
     const dateStr = formatInvoiceDate();
     const invoiceNo = makeInventoryReportNumber();
@@ -615,6 +717,7 @@ async function generateInventoryReport(){
       rptBranchEn: t("rptBranchEn"),
       rptNoProducts: t("rptNoProducts"),
     };
+    await showPdfOverlayStatus(t("sharePreparing"));
     const result = await generateInventoryReportPdf({
       lang,
       labels,
@@ -642,11 +745,13 @@ async function generateInventoryReport(){
       },
       dateStr,
       invoiceNo,
-    });
-    if(window.SIMSIM_LOGO_URL === undefined) window.SIMSIM_LOGO_URL = "images/logo.png";
+    }, { save:false });
+    if(!result || !result.blob) throw new Error("PDF blob is empty");
+    const file = new File([result.blob], result.fileName || "inventory-report.pdf", { type:"application/pdf" });
+    await sharePdfFile(file);
   } catch (e) {
     console.error("Inventory report failed:", e);
-    alert("Error generating inventory report: " + (e && e.message || e));
+    showPdfOverlayError(e && e.message || "");
   }
 }
 window.generateInventoryReport = generateInventoryReport;

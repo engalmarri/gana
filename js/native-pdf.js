@@ -192,15 +192,17 @@ async function renderPageToPdf(doc, html, pageIndex){
   try {
     await document.fonts?.ready;
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await new Promise(resolve => setTimeout(resolve, 50));
     const canvas = await window.html2canvas(host.firstElementChild.nextElementSibling, { scale:1.5, useCORS:true, backgroundColor:"#ffffff", logging:false, width:A4.width, height:A4.height });
     if(pageIndex > 0) doc.addPage();
     doc.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297, undefined, "FAST");
+    await new Promise(resolve => setTimeout(resolve, 30));
   } finally {
     host.remove();
   }
 }
 
-export async function generateInventoryReportPdf(inputs){
+export async function generateInventoryReportPdf(inputs, options = {}){
   if(!window.jspdf?.jsPDF || !window.html2canvas) throw new Error("PDF dependencies are unavailable");
   const t = labelsFor(inputs);
   const rows = buildRows(inputs.products, inputs.cart);
@@ -211,6 +213,7 @@ export async function generateInventoryReportPdf(inputs){
     await renderPageToPdf(doc, pageMarkup({ rows:pages[index], first:index === 0, last:index === pages.length - 1, pageNumber:index + 1, total:pages.length, ctx, t }), index);
   }
   const fileName = `${filenamePart(ctx.branch)}-inventory-${filenamePart(ctx.date)}.pdf`;
-  doc.save(fileName);
-  return { pages:pages.length, fileName };
+  const blob = doc.output("blob");
+  if(options.save !== false) doc.save(fileName);
+  return { pages:pages.length, fileName, blob };
 }
