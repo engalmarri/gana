@@ -1191,3 +1191,50 @@ html[lang="en"] .app-v2{ font-family:var(--v2-font-en); }
   grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
   gap:12px;
 }
+
+/* ---------- PDF share overlay ---------- */
+.app-v2 .share-pdf-overlay{
+  position:fixed; inset:0;
+  z-index:calc(var(--v2-z-modal) + 1);
+  display:flex; align-items:center; justify-content:center;
+  padding:20px;
+  background:rgba(15,23,42,.55);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  opacity:0; visibility:hidden;
+  transition:opacity var(--v2-t),visibility var(--v2-t);
+}
+.app-v2 .share-pdf-overlay.active{ opacity:1; visibility:visible; }
+.app-v2 .share-pdf-overlay[hidden]{ display:none !important; }
+.app-v2 .share-pdf-card{
+  width:100%; max-width:400px;
+  background:var(--v2-surface);
+  border:1px solid var(--v2-border);
+  border-radius:var(--v2-radius-xl);
+  box-shadow:var(--v2-shadow-lg);
+  padding:32px 26px;
+  text-align:center;
+  transform:scale(.96);
+  transition:transform var(--v2-t);
+}
+.app-v2 .share-pdf-overlay.active .share-pdf-card{ transform:scale(1); }
+.app-v2 .share-pdf-card h2{ font-size:20px; font-weight:800; color:var(--v2-text); margin:0 0 8px; }
+.app-v2 .share-pdf-card p{ font-size:13px; color:var(--v2-text-muted); margin-bottom:20px; line-height:1.6; }
+.app-v2 .share-pdf-icon{
+  width:56px; height:56px; margin:0 auto 16px;
+  border-radius:50%;
+  background:var(--v2-primary-soft);
+  display:flex; align-items:center; justify-content:center;
+}
+.app-v2 .share-pdf-icon svg{ width:26px; height:26px; color:var(--v2-primary); }
+.app-v2 .share-pdf-icon--error{ background:var(--v2-danger-soft); }
+.app-v2 .share-pdf-icon--error svg{ color:var(--v2-danger); }
+.app-v2 .share-pdf-card .btn-primary,.app-v2 .share-pdf-card .btn-subtle,.app-v2 .share-pdf-card .btn-ghost{ width:100%; margin-top:8px; display:flex; }
+.app-v2 .share-spinner{
+  width:26px; height:26px;
+  border:3px solid var(--v2-primary-soft);
+  border-top-color:var(--v2-primary);
+  border-radius:50%;
+  animation:v2ShareSpin .8s linear infinite;
+}
+@keyframes v2ShareSpin{ to{ transform:rotate(360deg); } }
