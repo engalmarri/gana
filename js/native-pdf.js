@@ -9,7 +9,7 @@ const PAGE_MARGIN = 24;
 const ROW_HEIGHT = 28;
 const FIRST_HEADER_HEIGHT = 155;
 const CONTINUED_HEADER_HEIGHT = 84;
-const FOOTER_HEIGHT = 45;
+const FOOTER_HEIGHT = 0;
 const CATEGORY_ROW_HEIGHT = 22;
 const SIGNATURE_ROW_HEIGHT = 67;
 
@@ -146,9 +146,12 @@ function reportStyles(){
     .report-table td { height:${ROW_HEIGHT}px; padding:1px; border:1px solid #b8bec5; text-align:center; vertical-align:middle; overflow:hidden; font-size:10px; color:#000 !important; }
     .report-table .category-row td { height:${CATEGORY_ROW_HEIGHT}px; background:#e5e7eb; color:#111 !important; font-size:11px; font-weight:700; text-align:center; }
     .report-table .section-signature td { height:${SIGNATURE_ROW_HEIGHT}px; padding:0; background:#fff; }
-    .section-signature-wrap { display:grid; grid-template-columns:1fr 1fr; min-height:${SIGNATURE_ROW_HEIGHT - 2}px; direction:ltr; text-align:left; }
+    .section-signature-wrap { display:grid; grid-template-columns:1fr 205px 1fr; min-height:${SIGNATURE_ROW_HEIGHT - 2}px; direction:ltr; text-align:left; }
     .section-signature-half { padding:6px 9px; }
-    .section-signature-half + .section-signature-half { border-left:1px solid #626a73; }
+    .section-signature-date { padding:7px 8px; border-left:1px solid #626a73; border-right:1px solid #626a73; text-align:center; }
+    .section-signature-date .en { direction:ltr; font-size:8px; font-weight:700; }
+    .section-signature-date .ar { direction:rtl; unicode-bidi:plaintext; font-size:7px; font-weight:700; margin-top:2px; }
+    .section-signature-date .date-box { width:112px; height:17px; border:1px solid #8e969f; margin:5px auto 0; }
     .section-signature-title { text-align:center; font-size:9px; font-weight:700; margin-bottom:7px; }
     .section-signature-line { display:flex; justify-content:space-between; gap:8px; align-items:end; font-size:8px; font-weight:700; margin-top:5px; }
     .section-signature-line span:last-child { flex:1; border-bottom:1px solid #8e969f; min-width:110px; }
@@ -209,20 +212,15 @@ function tableRows(rows){
 
 function signatureRow(){
   const half = (title, nameLabel) => `<div class="section-signature-half"><div class="section-signature-title">${title}</div><div class="section-signature-line"><span>${nameLabel}</span><span></span></div><div class="section-signature-line"><span>Signature / التوقيع</span><span></span></div></div>`;
-  return `<tr class="section-signature"><td colspan="9"><div class="section-signature-wrap">${half("Branch Manager Name / مدير القسم", "Name / الاسم")}${half("Branch Inspector Name / مفتش القسم", "Name / الاسم")}</div></td></tr>`;
-}
-
-function footer(){
-  const dateAr = "تاريخ التسليم والجرد";
-  const dateEn = "Delivery & Inventory Date";
-  return `<footer class="report-footer"><div class="delivery-date"><div class="en">${escapeHtml(dateEn)}</div><div class="ar">${escapeHtml(dateAr)}</div><div class="date-box"></div></div></footer>`;
+  const date = `<div class="section-signature-date"><div class="en">Delivery & Inventory Date</div><div class="ar">تاريخ التسليم والجرد</div><div class="date-box"></div></div>`;
+  return `<tr class="section-signature"><td colspan="9"><div class="section-signature-wrap">${half("Branch Manager Name / مدير الفرع", "Name / الاسم")}${date}${half("Branch Inspector Name / مفتش الفروع", "Name / الاسم")}</div></td></tr>`;
 }
 
 function pageMarkup({ rows, first, last, pageNumber, total, ctx, t }){
   const header = first
     ? `<header class="report-top"><div class="report-meta branch">${escapeHtml(ctx.branch)}<br>${escapeHtml(ctx.date)}</div><div class="report-meta customer"><div class="label">Customer</div>${escapeHtml(ctx.user)}<br><span dir="ltr">Invoice No. ${escapeHtml(ctx.invoiceNo)}</span></div><div class="report-brand"><img src="images/logo.png" alt="Logo"></div><div class="report-title"><div class="ar">تقرير جرد وتسليم منتجات</div><div class="en">Products Inventory & Delivery Report</div></div></header>`
     : `<header class="continued-head"><span>Products Inventory & Delivery Report</span><span class="ar">تقرير جرد وتسليم منتجات</span></header>`;
-  return `<section class="inventory-report-page">${header}<table class="report-table">${tableHeaders()}${tableRows(rows)}</table>${last ? footer() : ""}<div class="page-number">${pageNumber} of ${total}</div></section>`;
+  return `<section class="inventory-report-page">${header}<table class="report-table">${tableHeaders()}${tableRows(rows)}</table><div class="page-number">${pageNumber} of ${total}</div></section>`;
 }
 
 async function renderPageToPdf(doc, html, pageIndex){
