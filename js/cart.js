@@ -374,38 +374,46 @@ function clearCart(){cart=[];saveCart();renderCart();closeClearCartModal();}
 function makeInvoiceNumber(){let c=1;try{const v=localStorage.getItem(INV_COUNTER_KEY);if(v)c=parseInt(v,10)||1;}catch(e){}const n=String(c).padStart(4,"0");localStorage.setItem(INV_COUNTER_KEY,String(c+1));return`INV-${n}`;}
 function makeInventoryReportNumber(){let c=1;try{const v=localStorage.getItem(INVENTORY_REPORT_COUNTER_KEY);if(v)c=parseInt(v,10)||1;}catch(e){}const n=String(c).padStart(4,"0");localStorage.setItem(INVENTORY_REPORT_COUNTER_KEY,String(c+1));return n;}
 function formatInvoiceDate(){return new Date().toLocaleString("en-GB",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});}
-function createInvoiceCells(item){const desc=item.description||"";const arName=item.name||"";return `<td class="invoice-check-cell"></td><td class="invoice-product-cell"><div class="invoice-product-main"><span class="invoice-product-number invoice-product-qty">${getItemQty(item)}</span><strong><bdi>${escapeHTML(desc)}</bdi></strong><span class="invoice-check-box"></span></div>${arName?`<div class="invoice-product-details" dir="rtl"><bdi>${escapeHTML(arName)}</bdi></div>`:""}</td>`;}
+function createInvoiceCells(item){const desc=item.description||"";const arName=item.name||"";const qtyTxt=item.checked?getItemQty(item):"";return `<td class="invoice-check-cell"></td><td class="invoice-product-cell"><div class="invoice-product-main"><span class="invoice-product-number invoice-product-qty">${qtyTxt}</span><strong><bdi>${escapeHTML(desc)}</bdi></strong><span class="invoice-check-box"></span></div>${arName?`<div class="invoice-product-details" dir="rtl"><bdi>${escapeHTML(arName)}</bdi></div>`:""}</td>`;}
 function createEmptyCells(){return '<td class="invoice-check-cell invoice-empty-cell"></td><td class="invoice-product-cell invoice-empty-cell"></td>';}
-function createNonCartCell(item){const desc=item.description||"";const arName=item.name||"";return `<td style="padding:2px 4px;font-size:10px;font-weight:800;color:#111;border:1px solid #222;text-align:left;line-height:1.3;"><bdi>${escapeHTML(desc)}</bdi>${arName?`<br><span style="font-size:10px;color:#333;font-weight:600;"><bdi>${escapeHTML(arName)}</bdi></span>`:""}</td><td style="padding:2px 4px;border:1px solid #222;text-align:center;font-size:10px;white-space:nowrap;vertical-align:middle;">&nbsp;</td>`;}
-function createEmptyNonCartCell(){return '<td style="padding:2px 4px;border:1px solid #222;"></td><td style="padding:2px 4px;border:1px solid #222;"></td>';}
-function createInvoiceRowsFromCart(){
-  let items = [...cart];
-  const groups = {};
-  items.forEach(it => {
-    const cat = it.category || "Other";
-    if(!groups[cat]) groups[cat] = [];
-    groups[cat].push(it);
-  });
-  const rows = [];
-  const processed = new Set();
-  CAT_ORDER.forEach(cat => {
-    const group = groups[cat];
-    if(!group || group.length === 0) return;
-    rows.push({ type: "header", catName: getCatMetaObj(cat).nameEn || CAT_EN_NAMES[cat] || cat });
-    for(let i = 0; i < group.length; i += COLUMNS_PER_INVOICE_ROW){
-      rows.push({ type: "items", items: group.slice(i, i + COLUMNS_PER_INVOICE_ROW) });
+function signatureRowHTML(){
+  return '<tr class="invoice-signature-row"><td colspan="6" style="padding:0;border:1px solid #222;"><div style="display:flex;align-items:stretch;direction:ltr;text-align:left;">'
+    + '<div style="flex:1 1 0;padding:7px 10px;border-left:1px solid #222;">'
+    + '<div style="font-weight:900;font-size:12px;color:#111;margin-bottom:8px;text-align:center;">Branch Manager Name / مدير القسم</div>'
+    + '<div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px;">Name / الاسم: <span style="display:inline-block;min-width:130px;border-bottom:1px solid #777;">&nbsp;</span></div>'
+    + '<div style="font-size:11px;font-weight:700;color:#111;">Signature / التوقيع: <span style="display:inline-block;min-width:100px;border-bottom:1px solid #777;">&nbsp;</span></div>'
+    + '</div>'
+    + '<div style="flex:1 1 0;padding:7px 10px;">'
+    + '<div style="font-weight:900;font-size:12px;color:#111;margin-bottom:8px;text-align:center;">Branch Inspector Name / مفتش القسم</div>'
+    + '<div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px;">Name / الاسم: <span style="display:inline-block;min-width:130px;border-bottom:1px solid #777;">&nbsp;</span></div>'
+    + '<div style="font-size:11px;font-weight:700;color:#111;">Signature / التوقيع: <span style="display:inline-block;min-width:100px;border-bottom:1px solid #777;">&nbsp;</span></div>'
+    + '</div>'
+    + '</div></td></tr>';
+}
+function createInvoiceRowsFromCart(allProducts){
+  const groups={};
+  cart.forEach(it=>{const cat=it.category||"Other";if(!groups[cat])groups[cat]=[];groups[cat].push(it);});
+  const catMap={};
+  (allProducts||[]).forEach(p=>{const cat=p.category||"Other";if(!catMap[cat])catMap[cat]=[];catMap[cat].push(p);});
+  const rows=[];
+  const processed=new Set();
+  const pushCat=(cat)=>{
+    const cartItems=groups[cat]||[];
+    if(!cartItems.length)return;
+    rows.push({type:"header",catName:getCatMetaObj(cat).nameEn||CAT_EN_NAMES[cat]||cat});
+    const cartIds=new Set(cartItems.map(it=>String(it.id)));
+    const nonCart=(catMap[cat]||[]).filter(p=>!cartIds.has(String(p.id))&&(p.name||p.description));
+    const orderedItems=[];
+    cartItems.forEach(it=>orderedItems.push({...it,checked:true}));
+    nonCart.forEach(p=>orderedItems.push({id:p.id,name:p.name||"",description:p.description||"",code:p.code||"",category:p.category||"",image:p.image||"images/noimg.jpg",qty:0,checked:false}));
+    for(let i=0;i<orderedItems.length;i+=COLUMNS_PER_INVOICE_ROW){
+      rows.push({type:"items",items:orderedItems.slice(i,i+COLUMNS_PER_INVOICE_ROW)});
     }
+    rows.push({type:"signature"});
     processed.add(cat);
-  });
-  // Remaining categories not in CAT_ORDER
-  Object.keys(groups).forEach(cat => {
-    if(processed.has(cat)) return;
-    const group = groups[cat];
-    rows.push({ type: "header", catName: getCatMetaObj(cat).nameEn || cat });
-    for(let i = 0; i < group.length; i += COLUMNS_PER_INVOICE_ROW){
-      rows.push({ type: "items", items: group.slice(i, i + COLUMNS_PER_INVOICE_ROW) });
-    }
-  });
+  };
+  CAT_ORDER.forEach(cat=>pushCat(cat));
+  Object.keys(groups).forEach(cat=>{if(!processed.has(cat))pushCat(cat);});
   return rows;
 }
 function renderInvoiceRows(rows){
@@ -419,6 +427,8 @@ function renderInvoiceRows(rows){
       (ri.items || []).forEach(it => { h += createInvoiceCells(it); });
       for(let e = (ri.items||[]).length; e < COLUMNS_PER_INVOICE_ROW; e++) h += createEmptyCells();
       invoiceProducts.insertAdjacentHTML("beforeend", `<tr>${h}</tr>`);
+    } else if(ri.type === "signature"){
+      invoiceProducts.insertAdjacentHTML("beforeend", signatureRowHTML());
     }
   });
 }
@@ -426,86 +436,6 @@ function setFooterVisible(v){const s=invoiceTemplate?.querySelector(".invoice-su
 function getMaxHeight(){const w=invoiceTemplate?invoiceTemplate.scrollWidth:1120;return Math.floor(w*(A4_HEIGHT_MM/A4_WIDTH_MM))-24;}
 function splitPages(rows){const pages=[];const mh=getMaxHeight();let s=0;while(s<rows.length){let e=s+1;let lg=e;while(e<=rows.length){renderInvoiceRows(rows.slice(s,e));setFooterVisible(e===rows.length);if(invoiceTemplate.scrollHeight<=mh){lg=e;e++;}else break;}pages.push(rows.slice(s,lg));s=lg;}return pages;}
 function waitForImages(c){return Promise.all(Array.from(c.querySelectorAll("img")).map(i=>new Promise(r=>{if(i.complete){r();return;}i.onload=()=>r();i.onerror=()=>r();setTimeout(r,2000);})));}
-function renderNonCartRows(rows){
-  const tbody=document.getElementById("nonCartProducts");
-  if(!tbody)return;
-  tbody.innerHTML="";
-  rows.forEach(ri=>{
-    if(ri.type==="header"){
-      tbody.insertAdjacentHTML("beforeend",`<tr><td colspan="6" style="background:#d9d9d9;color:#111;border:1px solid #222;padding:4px 6px;font-size:12px;font-weight:900;text-align:center;">${ri.catName}</td></tr>`);
-    }else if(ri.type==="items"){
-      let h="";
-      (ri.items||[]).forEach(it=>{h+=createNonCartCell(it);});
-      for(let e=(ri.items||[]).length;e<3;e++)h+=createEmptyNonCartCell();
-      tbody.insertAdjacentHTML("beforeend",`<tr>${h}</tr>`);
-    }
-  });
-}
-function setInvoiceMainVisible(v){
-  const t=document.getElementById("invoiceTable");if(t)t.style.display=v?"":"none";
-  const s=invoiceTemplate?.querySelector(".invoice-summary-row");if(s)s.style.display=v?"":"none";
-  const d=invoiceTemplate?.querySelector(".invoice-delivery-info");if(d)d.style.display=v?"":"none";
-}
-function setTitleMode(stock){
-  const m=document.getElementById("invoiceTitleMain");
-  const st=document.getElementById("invoiceTitleStock");
-  if(m)m.style.display=stock?"none":"";
-  if(st)st.style.display=stock?"":"none";
-}
-function setSupervisorVisible(v){const s=document.getElementById("nonCartSupervisor");if(s)s.style.display=v?"grid":"none";}
-function getNonCartHeight(){const w=invoiceTemplate?invoiceTemplate.scrollWidth:1120;return Math.floor(w*(A4_HEIGHT_MM/A4_WIDTH_MM))-24;}
-function splitNonCartPages(rows){
-  const pages=[];const mh=getNonCartHeight();let s=0;
-  const nc=document.getElementById("nonCartSection");
-  if(!nc)return pages;
-  setInvoiceMainVisible(false);
-  setTitleMode(true);
-  nc.style.display="block";
-  setSupervisorVisible(false);
-  while(s<rows.length){
-    let e=s+1;let lg=e;
-    while(e<=rows.length){
-      renderNonCartRows(rows.slice(s,e));
-      setSupervisorVisible(e===rows.length);
-      if(invoiceTemplate.scrollHeight<=mh){lg=e;e++;}else break;
-    }
-    renderNonCartRows(rows.slice(s,lg));
-    pages.push(rows.slice(s,lg));
-    s=lg;
-  }
-  renderNonCartRows(rows.slice(0,0));
-  setSupervisorVisible(false);
-  nc.style.display="none";
-  setInvoiceMainVisible(true);
-  setTitleMode(false);
-  return pages;
-}
-function createNonCartRowsFromProducts(allProducts,cartIds){
-  const cartIdSet=new Set(cartIds.map(id=>String(id)));
-  const nonCart=allProducts.filter(p=>!cartIdSet.has(String(p.id)));
-  const groups={};
-  nonCart.forEach(p=>{
-    const cat=p.category||"Other";
-    if(!groups[cat])groups[cat]=[];
-    if(p.name||p.description)groups[cat].push(p);
-  });
-  const rows=[];
-  const processed=new Set();
-  CAT_ORDER.forEach(cat=>{
-    const grp=groups[cat];
-    if(!grp||grp.length===0)return;
-    rows.push({type:"header",catName:getCatMetaObj(cat).nameEn||CAT_EN_NAMES[cat]||cat});
-    for(let i=0;i<grp.length;i+=3)rows.push({type:"items",items:grp.slice(i,i+3)});
-    processed.add(cat);
-  });
-  Object.keys(groups).forEach(cat=>{
-    if(processed.has(cat))return;
-    const grp=groups[cat];
-    rows.push({type:"header",catName:getCatMetaObj(cat).nameEn||cat});
-    for(let i=0;i<grp.length;i+=3)rows.push({type:"items",items:grp.slice(i,i+3)});
-  });
-  return rows;
-}
 async function loadAllProducts(){
   try{
     const snap=await getDocs(collection(db,"products"));
@@ -530,36 +460,18 @@ async function createInvoice(){
   document.getElementById("invoiceTotal").textContent=cart.length;
   document.getElementById("invoiceQty").textContent=getCartTotalQty();
   const rv=document.getElementById("invRecvBranch");if(rv){const p=bn.split(" - ");rv.textContent=p.length===2?p[1]+" - "+p[0]:bn;}
-  const rows=createInvoiceRowsFromCart();const pages=splitPages(rows);
+  const allProducts=await loadAllProducts();
+  const rows=createInvoiceRowsFromCart(allProducts);const pages=splitPages(rows);
   invoiceTemplate.offsetHeight;
   await waitForImages(invoiceTemplate);
-  const allProducts=await loadAllProducts();
-  const nonCartRows=createNonCartRowsFromProducts(allProducts,cart.map(it=>it.id));
-  const nonCartPages=splitNonCartPages(nonCartRows);
   const pdf=new window.jspdf.jsPDF("P","mm","A4");
   for(let pi=0;pi<pages.length;pi++){
-    setTitleMode(false);
     renderInvoiceRows(pages[pi]);setFooterVisible(pi===pages.length-1);
+    const th2=invoiceTemplate?.querySelector("#invoiceTable thead");if(th2)th2.style.display="none";
     const canvas=await html2canvas(invoiceTemplate,{scale:2,useCORS:true,backgroundColor:"#ffffff",windowWidth:invoiceTemplate.scrollWidth,windowHeight:invoiceTemplate.scrollHeight});
     const imgData=canvas.toDataURL("image/png");const imgH=Math.min((canvas.height*A4_WIDTH_MM)/canvas.width,A4_HEIGHT_MM);
     if(pi>0)pdf.addPage();pdf.addImage(imgData,"PNG",0,0,A4_WIDTH_MM,imgH);
   }
-  for(let pi=0;pi<nonCartPages.length;pi++){
-    const nc=document.getElementById("nonCartSection");
-    if(nc)nc.style.display="block";
-    setInvoiceMainVisible(false);
-    setTitleMode(true);
-    setSupervisorVisible(pi===nonCartPages.length-1);
-    renderNonCartRows(nonCartPages[pi]);
-    const th3=invoiceTemplate?.querySelector("#invoiceTable thead");if(th3)th3.style.display="none";
-    const canvas=await html2canvas(invoiceTemplate,{scale:2,useCORS:true,backgroundColor:"#ffffff",windowWidth:invoiceTemplate.scrollWidth,windowHeight:invoiceTemplate.scrollHeight});
-    const imgData=canvas.toDataURL("image/png");const imgH=Math.min((canvas.height*A4_WIDTH_MM)/canvas.width,A4_HEIGHT_MM);
-    pdf.addPage();pdf.addImage(imgData,"PNG",0,0,A4_WIDTH_MM,imgH);
-  }
-  const nc=document.getElementById("nonCartSection");if(nc)nc.style.display="none";
-  setInvoiceMainVisible(true);
-  setSupervisorVisible(false);
-  setTitleMode(false);
   setFooterVisible(true);
   pdf.save(`${bn}-${no}.pdf`);
   await saveInvoiceToFirestore(no,currentCustomer.name);
