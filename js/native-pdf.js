@@ -9,7 +9,9 @@ const PAGE_MARGIN = 24;
 const ROW_HEIGHT = 28;
 const FIRST_HEADER_HEIGHT = 155;
 const CONTINUED_HEADER_HEIGHT = 84;
-const FOOTER_HEIGHT = 150;
+const FOOTER_HEIGHT = 45;
+const CATEGORY_ROW_HEIGHT = 22;
+const SIGNATURE_ROW_HEIGHT = 67;
 
 const CATEGORY_NAMES = {
   "قسم المعمل": "Lab",
@@ -59,10 +61,11 @@ function buildRows(products, cart){
   ];
   let serial = 0;
   return categories.flatMap(category => {
-    const items = groups.get(category) || [];
+    const items = [...(groups.get(category) || [])];
     // Requested products first makes the delivery form easier to use.
     items.sort((a, b) => Number(requestedById.has(String(b.id))) - Number(requestedById.has(String(a.id))));
-    return items.map(product => ({
+    const productRows = items.map(product => ({
+      type: "product",
       serial: ++serial,
       arabicName: product.name || "",
       englishName: product.description || product.nameEn || "",
@@ -70,23 +73,54 @@ function buildRows(products, cart){
       requested: requestedById.has(String(product.id)) ? requestedById.get(String(product.id)) : 0,
       noExpiry: Boolean(product.noExpiry),
     }));
+    return [
+      { type:"category", category:categoryEnglish(category, "") },
+      ...productRows,
+      { type:"signature" },
+    ];
   });
 }
 
-function splitRows(rows){
-  const firstCapacity = Math.max(1, Math.floor((A4.height - FIRST_HEADER_HEIGHT - PAGE_MARGIN - 30) / ROW_HEIGHT));
-  const firstLastCapacity = Math.max(1, Math.floor((A4.height - FIRST_HEADER_HEIGHT - FOOTER_HEIGHT - PAGE_MARGIN - 30) / ROW_HEIGHT));
-  const laterCapacity = Math.max(1, Math.floor((A4.height - CONTINUED_HEADER_HEIGHT - PAGE_MARGIN - 30) / ROW_HEIGHT));
-  const lastCapacity = Math.max(1, Math.floor((A4.height - CONTINUED_HEADER_HEIGHT - FOOTER_HEIGHT - PAGE_MARGIN - 30) / ROW_HEIGHT));
-  if(rows.length <= firstLastCapacity) return [rows];
+function rowHeight(row){
+  if(row.type === "category") return CATEGORY_ROW_HEIGHT;
+  if(row.type === "signature") return SIGNATURE_ROW_HEIGHT;
+  return ROW_HEIGHT;
+}
 
-  const pages = [rows.slice(0, firstCapacity)];
-  let offset = firstCapacity;
-  while(rows.length - offset > lastCapacity){
-    pages.push(rows.slice(offset, offset + laterCapacity));
-    offset += laterCapacity;
+function splitRows(rows){
+  const firstAvailable = Math.max(ROW_HEIGHT, A4.height - FIRST_HEADER_HEIGHT - PAGE_MARGIN - 30);
+  const laterAvailable = Math.max(ROW_HEIGHT, A4.height - CONTINUED_HEADER_HEIGHT - PAGE_MARGIN - 30);
+  const pages = [];
+  let page = [];
+  let used = 0;
+
+  rows.forEach(row => {
+    const available = pages.length === 0 ? firstAvailable : laterAvailable;
+    const height = rowHeight(row);
+    if(page.length && used + height > available){
+      pages.push(page);
+      page = [];
+      used = 0;
+    }
+    page.push(row);
+    used += height;
+  });
+  if(page.length) pages.push(page);
+
+  // Keep every signature as a complete table row. If the final date footer
+  // needs room, trailing rows move together to a new final page.
+  const finalAvailable = (pages.length === 1 ? firstAvailable : laterAvailable) - FOOTER_HEIGHT;
+  let finalHeight = pages.at(-1).reduce((sum, row) => sum + rowHeight(row), 0);
+  if(finalHeight > finalAvailable){
+    const finalPage = pages.at(-1);
+    const movedRows = [];
+    while(finalPage.length && finalHeight > finalAvailable){
+      const row = finalPage.pop();
+      movedRows.unshift(row);
+      finalHeight -= rowHeight(row);
+    }
+    pages.push(movedRows);
   }
-  pages.push(rows.slice(offset));
   return pages;
 }
 
@@ -110,6 +144,14 @@ function reportStyles(){
     .report-table th .ar { display:block; direction:rtl; unicode-bidi:plaintext; font-size:5.7px; line-height:1.06; }
     .report-table th .en { display:block; direction:ltr; font-size:4.6px; line-height:1.04; font-weight:400; margin-top:1px; overflow-wrap:anywhere; }
     .report-table td { height:${ROW_HEIGHT}px; padding:1px; border:1px solid #b8bec5; text-align:center; vertical-align:middle; overflow:hidden; font-size:10px; color:#000 !important; }
+    .report-table .category-row td { height:${CATEGORY_ROW_HEIGHT}px; background:#e5e7eb; color:#111 !important; font-size:11px; font-weight:700; text-align:center; }
+    .report-table .section-signature td { height:${SIGNATURE_ROW_HEIGHT}px; padding:0; background:#fff; }
+    .section-signature-wrap { display:grid; grid-template-columns:1fr 1fr; min-height:${SIGNATURE_ROW_HEIGHT - 2}px; direction:ltr; text-align:left; }
+    .section-signature-half { padding:6px 9px; }
+    .section-signature-half + .section-signature-half { border-left:1px solid #626a73; }
+    .section-signature-title { text-align:center; font-size:9px; font-weight:700; margin-bottom:7px; }
+    .section-signature-line { display:flex; justify-content:space-between; gap:8px; align-items:end; font-size:8px; font-weight:700; margin-top:5px; }
+    .section-signature-line span:last-child { flex:1; border-bottom:1px solid #8e969f; min-width:110px; }
     .report-table td.report-product-cell { display:table-cell !important; min-height:0 !important; margin:0 !important; padding:1px !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; text-align:center; color:#000 !important; }
     .report-product-ar { direction:rtl; unicode-bidi:plaintext; color:#000 !important; opacity:1 !important; font-family:Arial, Tahoma, sans-serif; font-size:10px; font-weight:400; line-height:1.02; overflow-wrap:anywhere; }
     .report-product-en { direction:ltr; color:#000 !important; opacity:1 !important; font-family:Arial, Tahoma, sans-serif; font-size:7px; line-height:1; margin-top:1px; overflow-wrap:anywhere; }
@@ -157,24 +199,23 @@ function tableHeaders(){
 function tableRows(rows){
   if(!rows.length) return `<tbody><tr><td colspan="9">No products</td></tr></tbody>`;
   return `<tbody>${rows.map(row => {
+    if(row.type === "category") return `<tr class="category-row"><td colspan="9">${escapeHtml(row.category)}</td></tr>`;
+    if(row.type === "signature") return signatureRow();
     const expiry = row.noExpiry ? `<td class="no-expiry">-</td><td class="no-expiry">-</td><td class="no-expiry">-</td>` : `<td class="manual-cell"></td><td class="manual-cell"></td><td class="manual-cell"></td>`;
     const requestedClass = Number(row.requested) > 0 ? "requested-cell is-requested" : "requested-cell";
     return `<tr><td>${row.serial}</td><td class="report-product-cell"><div class="report-product-ar">${escapeHtml(row.arabicName)}</div><div class="report-product-en">${escapeHtml(row.englishName)}</div></td><td class="category">${escapeHtml(row.category)}</td><td class="${requestedClass}">${escapeHtml(row.requested)}</td><td class="manual-cell"></td><td class="manual-cell"></td>${expiry}</tr>`;
   }).join("")}</tbody>`;
 }
 
+function signatureRow(){
+  const half = (title, nameLabel) => `<div class="section-signature-half"><div class="section-signature-title">${title}</div><div class="section-signature-line"><span>${nameLabel}</span><span></span></div><div class="section-signature-line"><span>Signature / التوقيع</span><span></span></div></div>`;
+  return `<tr class="section-signature"><td colspan="9"><div class="section-signature-wrap">${half("Branch Manager Name / مدير القسم", "Name / الاسم")}${half("Branch Inspector Name / مفتش القسم", "Name / الاسم")}</div></td></tr>`;
+}
+
 function footer(){
   const dateAr = "تاريخ التسليم والجرد";
   const dateEn = "Delivery & Inventory Date";
-  const managerAr = "اسم مدير الفرع";
-  const managerEn = "Branch Manager Name";
-  const inspectorAr = "اسم مفتش الفرع";
-  const inspectorEn = "Branch Inspector Name";
-  const signatureAr = "التوقيع";
-  const signatureEn = "Signature";
-  const pair = (ar, en, extra = "") => `<div class="signature-pair ${extra}"><span class="en">${escapeHtml(en)}</span><span class="ar">${escapeHtml(ar)}</span></div>`;
-  const half = (ar, en) => `<div class="signature-half">${pair(ar, en)}<div class="signature-line"></div>${pair(signatureAr, signatureEn, "signature-label")}<div class="signature-line"></div></div>`;
-  return `<footer class="report-footer"><div class="delivery-date"><div class="en">${escapeHtml(dateEn)}</div><div class="ar">${escapeHtml(dateAr)}</div><div class="date-box"></div></div><div class="signatures">${half(inspectorAr, inspectorEn)}${half(managerAr, managerEn)}</div></footer>`;
+  return `<footer class="report-footer"><div class="delivery-date"><div class="en">${escapeHtml(dateEn)}</div><div class="ar">${escapeHtml(dateAr)}</div><div class="date-box"></div></div></footer>`;
 }
 
 function pageMarkup({ rows, first, last, pageNumber, total, ctx, t }){

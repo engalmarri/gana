@@ -1,6 +1,6 @@
 import { db } from "./firebase.js";
 import { generateInvoicePdf } from "./invoice-pdf.js?v=20260803";
-import { generateInventoryReportPdf } from "./native-pdf.js?v=20260813";
+import { generateInventoryReportPdf } from "./native-pdf.js?v=20260814";
 import {
   collection, addDoc, getDoc, getDocs, updateDoc, doc,
   query, where, orderBy, serverTimestamp, Timestamp
