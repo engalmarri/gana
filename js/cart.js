@@ -1,6 +1,6 @@
 import { db } from "./firebase.js";
 import { generateInvoicePdf } from "./invoice-pdf.js?v=20260803";
-import { generateInventoryReportPdf } from "./native-pdf.js?v=20260815";
+import { generateInventoryReportPdf } from "./native-pdf.js?v=20260818";
 import {
   collection, addDoc, getDoc, getDocs, updateDoc, doc,
   query, where, orderBy, serverTimestamp, Timestamp
@@ -182,10 +182,10 @@ function getAllowedCategories(){
   if(!currentCustomer)return[];
   const perms=currentCustomer.permissions;
   if(perms&&typeof perms==='object'&&Object.keys(perms).length>0){
-    const active=Object.keys(perms).filter(k=>perms[k]);
-    const cartCats=new Set(cart.filter(i=>i.category).map(i=>i.category));
-    const matched=active.filter(c=>cartCats.has(c));
-    if(matched.length>0)return matched;
+    // An explicit permission map is authoritative.  Falling back to the
+    // account defaults here would expose categories that were deliberately
+    // switched off for this customer.
+    return Object.keys(perms).filter(k=>perms[k]);
   }
   const storedMeta=(()=>{try{return JSON.parse(localStorage.getItem("simsim_cat_meta"))||{};}catch(e){return{};}})();
   const dynamicPerms=storedMeta._defaultPerms||CATEGORY_PERMISSIONS;
@@ -195,7 +195,16 @@ function getAllowedCategories(){
     const matched=defaults.filter(d=>cartCats.has(d));
     if(matched.length>0)return matched;
   }
-  return [...new Set(cart.filter(i=>i.category).map(i=>i.category))];
+  return [];
+}
+function isCategoryAllowed(category){
+  return getAllowedCategories().includes(category || "Other");
+}
+function getAuthorizedCart(){
+  return cart.filter(item=>isCategoryAllowed(item.category));
+}
+function getCartForCurrentView(){
+  return currentCustomer ? getAuthorizedCart() : cart;
 }
 function applyPermissions(){
   const allowed=getAllowedCategories();
@@ -309,10 +318,10 @@ document.getElementById("invoiceDetailClose")?.addEventListener("click",()=>{if(
 invoiceDetailModal?.addEventListener("click",e=>{if(e.target===invoiceDetailModal){invoiceDetailModal.classList.remove("active");invoiceDetailModal.setAttribute("aria-hidden","true");setTimeout(()=>{invoiceDetailModal.hidden=true;},200);}});
 
 /* CART RENDER */
-function getFilteredCart(){if(cartCategory==="all")return cart;return cart.filter(i=>(i.category||"")===cartCategory);}
+function getFilteredCart(){const visibleCart=getCartForCurrentView();if(cartCategory==="all")return visibleCart;return visibleCart.filter(i=>(i.category||"")===cartCategory);}
 function buildCartCatCards(){
   const filter=document.getElementById("cartCategoryFilter");if(!filter)return;
-  const cats=[...new Set(cart.filter(i=>i.category).map(i=>i.category))];
+  const cats=[...new Set(getCartForCurrentView().filter(i=>i.category).map(i=>i.category))];
   filter.innerHTML=`<button type="button" class="cat-card" data-cat="all"><span class="cat-badge" data-cat-count="all" style="display:none;">0</span><span class="cat-label" data-i18n-cat="all">${t("all")}</span></button>`;
   filter.querySelector(".cat-card[data-cat='all']").addEventListener("click",function(){
     filter.querySelectorAll(".cat-card").forEach(c=>c.classList.remove("active"));
@@ -347,12 +356,13 @@ function renderCart(){
     vis++;
     cartItems.insertAdjacentHTML("beforeend",`<div class="cart-item"><img src="${escapeHTML(getProductImage(item))}" alt="${escapeHTML(item.description||"")}" onerror="this.src='images/noimg.jpg'"><div class="info"><h3>${escapeHTML(item.description||"")}</h3><p class="product-name-ar">${escapeHTML(item.name||"")}</p><p style="font-size:12px;color:var(--v2-text-muted);">SKU: ${escapeHTML(item.code||"")} | ${escapeHTML(item.category||"")}</p><div class="qty-controls"><button type="button" data-action="decrease" data-id="${escapeHTML(item.id)}" aria-label="-"><i data-lucide="minus"></i></button><input type="number" min="1" value="${getItemQty(item)}" class="qty-input" data-id="${escapeHTML(item.id)}"><button type="button" data-action="increase" data-id="${escapeHTML(item.id)}" aria-label="+"><i data-lucide="plus"></i></button></div></div><button type="button" class="delete-cart-item" data-action="delete" data-id="${escapeHTML(item.id)}"><i data-lucide="trash-2"></i><span>${t("deleteBtn")}</span></button></div>`);
   });
-  if(cart.length===0)cartItems.innerHTML=`<div class="cart-item"><div class="info"><h3>${t("cartEmpty")}</h3></div></div>`;
+  if(getCartForCurrentView().length===0)cartItems.innerHTML=`<div class="cart-item"><div class="info"><h3>${t("cartEmpty")}</h3></div></div>`;
   else if(vis===0)cartItems.innerHTML=`<div class="cart-item"><div class="info"><h3>${t("noResults")}</h3></div></div>`;
-  if(cartTotal)cartTotal.textContent=getCartTotalQty();
+  const visibleTotal=getCartForCurrentView().reduce((sum,item)=>sum+getItemQty(item),0);
+  if(cartTotal)cartTotal.textContent=visibleTotal;
   // Update mobile invoice modal total
   const invModalTotal=document.getElementById("invoiceModalTotal");
-  if(invModalTotal)invModalTotal.textContent=getCartTotalQty();
+  if(invModalTotal)invModalTotal.textContent=visibleTotal;
   saveCart();
   loadCategoryCounts();
 }
@@ -392,9 +402,9 @@ function signatureRowHTML(){
 }
 function createInvoiceRowsFromCart(allProducts){
   const groups={};
-  cart.forEach(it=>{const cat=it.category||"Other";if(!groups[cat])groups[cat]=[];groups[cat].push(it);});
+  getAuthorizedCart().forEach(it=>{const cat=it.category||"Other";if(!groups[cat])groups[cat]=[];groups[cat].push(it);});
   const catMap={};
-  (allProducts||[]).forEach(p=>{const cat=p.category||"Other";if(!catMap[cat])catMap[cat]=[];catMap[cat].push(p);});
+  (allProducts||[]).filter(p=>isCategoryAllowed(p.category)).forEach(p=>{const cat=p.category||"Other";if(!catMap[cat])catMap[cat]=[];catMap[cat].push(p);});
   const rows=[];
   const processed=new Set();
   const pushCat=(cat)=>{
@@ -444,21 +454,22 @@ async function loadAllProducts(){
 }
 
 async function saveInvoiceToFirestore(invoiceNo,customerName){
-  try{const items=cart.map(it=>({id:it.id,name:it.name||"",description:it.description||"",code:it.code||"",category:it.category||"",image:it.image||"images/noimg.jpg",qty:getItemQty(it)}));const bn=currentCustomer?.branch||"";
-  await addDoc(collection(db,"invoices"),{invoiceNo,branchName:bn,customerId:currentCustomer?currentCustomer.id:"guest",customerName,accountType:currentCustomer?(currentCustomer.accountType||""):"",items,totalItems:cart.length,totalQty:getCartTotalQty(),createdAt:serverTimestamp(),date:new Date().toISOString()});
+  try{const authorizedCart=getAuthorizedCart();const items=authorizedCart.map(it=>({id:it.id,name:it.name||"",description:it.description||"",code:it.code||"",category:it.category||"",image:it.image||"images/noimg.jpg",qty:getItemQty(it)}));const bn=currentCustomer?.branch||"";
+  await addDoc(collection(db,"invoices"),{invoiceNo,branchName:bn,customerId:currentCustomer?currentCustomer.id:"guest",customerName,accountType:currentCustomer?(currentCustomer.accountType||""):"",items,totalItems:authorizedCart.length,totalQty:authorizedCart.reduce((sum,item)=>sum+getItemQty(item),0),createdAt:serverTimestamp(),date:new Date().toISOString()});
   }catch(e){console.error("Error saving invoice:",e);}
 }
 
 async function createInvoice(){
-  if(cart.length===0){alert("السلة فارغة");return;}
   if(!currentCustomer){alert("سجل الدخول أولاً");openLoginModal();return;}
+  const authorizedCart=getAuthorizedCart();
+  if(authorizedCart.length===0){alert("السلة فارغة");return;}
   const bn=currentCustomer?.branch||"";
   const no=makeInvoiceNumber();
   document.getElementById("invoiceNo").textContent=no;
   document.getElementById("invoiceDate").textContent=formatInvoiceDate();
   document.getElementById("invoiceCustomer").textContent=currentCustomer.name;
-  document.getElementById("invoiceTotal").textContent=cart.length;
-  document.getElementById("invoiceQty").textContent=getCartTotalQty();
+  document.getElementById("invoiceTotal").textContent=authorizedCart.length;
+  document.getElementById("invoiceQty").textContent=authorizedCart.reduce((sum,item)=>sum+getItemQty(item),0);
   const rv=document.getElementById("invRecvBranch");if(rv){const p=bn.split(" - ");rv.textContent=p.length===2?p[1]+" - "+p[0]:bn;}
   const allProducts=await loadAllProducts();
   const rows=createInvoiceRowsFromCart(allProducts);const pages=splitPages(rows);
@@ -588,6 +599,11 @@ async function generateInventoryReport(){
   try {
     await showPdfOverlayStatus(t("shareGenerating"));
     const allProducts = await loadAllProducts();
+    const allowedCart = getAuthorizedCart();
+    const allowedProducts = (allProducts || []).filter(product=>isCategoryAllowed(product.category));
+    if(allowedCart.length===0 && allowedProducts.length===0){
+      throw new Error("No products are available for this account");
+    }
     const dateStr = formatInvoiceDate();
     const invoiceNo = makeInventoryReportNumber();
     const lang = getLang();
@@ -633,7 +649,9 @@ async function generateInventoryReport(){
     const result = await generateInventoryReportPdf({
       lang,
       labels,
-      cart: cart.map(c => ({
+      // The report contains a complete category checklist, so both inputs
+      // must be permission-filtered; filtering the cart alone is insufficient.
+      cart: allowedCart.map(c => ({
         id: c.id,
         name: c.name || "",
         description: c.description || "",
@@ -641,7 +659,7 @@ async function generateInventoryReport(){
         category: c.category || "Other",
         noExpiry: !!c.noExpiry,
       })),
-      products: (allProducts || []).map(p => ({
+      products: allowedProducts.map(p => ({
         id: p.id,
         name: p.name || "",
         description: p.description || "",
@@ -689,7 +707,7 @@ const printInventoryReportMobile=document.getElementById("printInventoryReportMo
 const whatsappMobile=document.getElementById("whatsappMobile");
 const clearCartTopBtn=document.getElementById("clearCartTopBtn");
 
-function openInvoiceModal(){if(!invoiceModal)return;const t=document.getElementById("invoiceModalTotal");if(t)t.textContent=getCartTotalQty();invoiceModal.hidden=false;invoiceModal.setAttribute("aria-hidden","false");requestAnimationFrame(()=>invoiceModal.classList.add("active"));}
+function openInvoiceModal(){if(!invoiceModal)return;const t=document.getElementById("invoiceModalTotal");if(t)t.textContent=getCartForCurrentView().reduce((sum,item)=>sum+getItemQty(item),0);invoiceModal.hidden=false;invoiceModal.setAttribute("aria-hidden","false");requestAnimationFrame(()=>invoiceModal.classList.add("active"));}
 function closeInvoiceModal(){if(!invoiceModal)return;invoiceModal.classList.remove("active");invoiceModal.setAttribute("aria-hidden","true");setTimeout(()=>{invoiceModal.hidden=true;},200);}
 invoiceFab?.addEventListener("click",openInvoiceModal);
 invoiceModalClose?.addEventListener("click",closeInvoiceModal);

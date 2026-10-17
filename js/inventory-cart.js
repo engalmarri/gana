@@ -220,10 +220,7 @@ function getAllowedCategories(){
   if(!currentCustomer)return[];
   const perms=currentCustomer.permissions;
   if(perms&&typeof perms==='object'&&Object.keys(perms).length>0){
-    const active=Object.keys(perms).filter(k=>perms[k]);
-    const cartCats=new Set(cart.filter(i=>i.category).map(i=>i.category));
-    const matched=active.filter(c=>cartCats.has(c));
-    if(matched.length>0)return matched;
+    return Object.keys(perms).filter(k=>perms[k]);
   }
   const storedMeta=(()=>{try{return JSON.parse(localStorage.getItem("simsim_cat_meta"))||{};}catch(e){return{};}})();
   const dynamicPerms=storedMeta._defaultPerms||CATEGORY_PERMISSIONS;
@@ -233,8 +230,11 @@ function getAllowedCategories(){
     const matched=defaults.filter(d=>cartCats.has(d));
     if(matched.length>0)return matched;
   }
-  return [...new Set(cart.filter(i=>i.category).map(i=>i.category))];
+  return [];
 }
+function isCategoryAllowed(category){return getAllowedCategories().includes(category||"Other");}
+function getAuthorizedCart(){return cart.filter(item=>isCategoryAllowed(item.category));}
+function getCartForCurrentView(){return currentCustomer?getAuthorizedCart():cart;}
 function applyPermissions(){
   const allowed=getAllowedCategories();
   document.querySelectorAll("#cartCategoryFilter .cat-card").forEach(c=>{
@@ -352,10 +352,10 @@ document.getElementById("invoiceDetailClose")?.addEventListener("click",()=>{if(
 invoiceDetailModal?.addEventListener("click",e=>{if(e.target===invoiceDetailModal){invoiceDetailModal.classList.remove("active");invoiceDetailModal.setAttribute("aria-hidden","true");setTimeout(()=>{invoiceDetailModal.hidden=true;},200);}});
 
 /* CART RENDER */
-function getFilteredCart(){if(cartCategory==="all")return cart;return cart.filter(i=>(i.category||"")===cartCategory);}
+function getFilteredCart(){const visibleCart=getCartForCurrentView();if(cartCategory==="all")return visibleCart;return visibleCart.filter(i=>(i.category||"")===cartCategory);}
 function buildCartCatCards(){
   const filter=document.getElementById("cartCategoryFilter");if(!filter)return;
-  const cats=[...new Set(cart.filter(i=>i.category).map(i=>i.category))];
+  const cats=[...new Set(getCartForCurrentView().filter(i=>i.category).map(i=>i.category))];
   filter.innerHTML=`<button type="button" class="cat-card" data-cat="all"><span class="cat-badge" data-cat-count="all" style="display:none;">0</span><span class="cat-label" data-i18n-cat="all">${t("all")}</span></button>`;
   filter.querySelector(".cat-card[data-cat='all']").addEventListener("click",function(){
     filter.querySelectorAll(".cat-card").forEach(c=>c.classList.remove("active"));
@@ -389,11 +389,12 @@ function renderCart(){
     vis++;
     cartItems.insertAdjacentHTML("beforeend",`<div class="cart-item"><img src="${escapeHTML(getProductImage(item))}" alt="${escapeHTML(item.description||"")}" onerror="this.src='images/noimg.jpg'"><div class="info"><h3>${escapeHTML(item.description||"")}</h3><p class="product-name-ar">${escapeHTML(item.name||"")}</p><p style="font-size:12px;color:var(--v2-text-muted);">SKU: ${escapeHTML(item.code||"")} | ${escapeHTML(item.category||"")}</p><div class="qty-controls"><button type="button" data-action="decrease" data-id="${escapeHTML(item.id)}" aria-label="-"><i data-lucide="minus"></i></button><input type="number" min="1" value="${getItemQty(item)}" class="qty-input" data-id="${escapeHTML(item.id)}"><button type="button" data-action="increase" data-id="${escapeHTML(item.id)}" aria-label="+"><i data-lucide="plus"></i></button></div></div><button type="button" class="delete-cart-item" data-action="delete" data-id="${escapeHTML(item.id)}"><i data-lucide="trash-2"></i><span>${t("deleteBtn")}</span></button></div>`);
   });
-  if(cart.length===0)cartItems.innerHTML=`<div class="cart-item"><div class="info"><h3>${t("cartEmpty")}</h3></div></div>`;
+  if(getCartForCurrentView().length===0)cartItems.innerHTML=`<div class="cart-item"><div class="info"><h3>${t("cartEmpty")}</h3></div></div>`;
   else if(vis===0)cartItems.innerHTML=`<div class="cart-item"><div class="info"><h3>${t("noResults")}</h3></div></div>`;
-  if(cartTotal)cartTotal.textContent=getCartTotalQty();
+  const visibleTotal=getCartForCurrentView().reduce((sum,item)=>sum+getItemQty(item),0);
+  if(cartTotal)cartTotal.textContent=visibleTotal;
   const invModalTotal=document.getElementById("invoiceModalTotal");
-  if(invModalTotal)invModalTotal.textContent=getCartTotalQty();
+  if(invModalTotal)invModalTotal.textContent=visibleTotal;
   saveCart();
   loadCategoryCounts();
 }
@@ -415,7 +416,7 @@ function formatInvoiceDate(){return new Date().toLocaleString("en-GB",{year:"num
 function createInvoiceCells(item){const desc=item.description||"";const arName=item.name||"";return `<td class="invoice-check-cell"><span class="invoice-check-box"></span></td><td class="invoice-product-cell"><div class="invoice-product-main"><span class="invoice-product-number invoice-product-qty">${getItemQty(item)}</span><strong><bdi>${escapeHTML(desc)}</bdi></strong></div>${arName?`<div class="invoice-product-details" dir="rtl">${escapeHTML(arName)}</div>`:""}</td>`;}
 function createEmptyCells(){return '<td class="invoice-check-cell invoice-empty-cell"></td><td class="invoice-product-cell invoice-empty-cell"></td>';}
 function createInvoiceRowsFromCart(){
-  let items = [...cart];
+  let items = getAuthorizedCart();
   const groups = {};
   items.forEach(it => {
     const cat = it.category || "Other";
@@ -465,14 +466,16 @@ function waitForImages(c){return Promise.all(Array.from(c.querySelectorAll("img"
 async function saveInvoiceToFirestore(invoiceNo,customerName){
   try{
     const branchName=getSelectedBranch();
-    const items=cart.map(it=>({id:it.id,name:it.name||"",description:it.description||"",code:it.code||"",category:it.category||"",image:it.image||"images/noimg.jpg",qty:getItemQty(it)}));
-    await addDoc(collection(db,"invoices"),{invoiceNo,branchName,customerId:currentCustomer?currentCustomer.id:"guest",customerName,accountType:"جرد مخزون",items,totalItems:cart.length,totalQty:getCartTotalQty(),createdAt:serverTimestamp(),date:new Date().toISOString()});
+    const authorizedCart=getAuthorizedCart();
+    const items=authorizedCart.map(it=>({id:it.id,name:it.name||"",description:it.description||"",code:it.code||"",category:it.category||"",image:it.image||"images/noimg.jpg",qty:getItemQty(it)}));
+    await addDoc(collection(db,"invoices"),{invoiceNo,branchName,customerId:currentCustomer?currentCustomer.id:"guest",customerName,accountType:"جرد مخزون",items,totalItems:authorizedCart.length,totalQty:authorizedCart.reduce((sum,item)=>sum+getItemQty(item),0),createdAt:serverTimestamp(),date:new Date().toISOString()});
   }catch(e){console.error("Error saving invoice:",e);}
 }
 
 async function createInvoice(){
-  if(cart.length===0){alert("السلة فارغة");return;}
   if(!currentCustomer){alert("سجل الدخول أولاً");openLoginModal();return;}
+  const authorizedCart=getAuthorizedCart();
+  if(authorizedCart.length===0){alert("السلة فارغة");return;}
   const branchName=getSelectedBranch();
   if(!branchName){alert(t("chooseBranch"));return;}
   const no=makeInvoiceNumber();
@@ -480,8 +483,8 @@ async function createInvoice(){
   document.getElementById("invoiceDate").textContent=formatInvoiceDate();
   const custEl=document.getElementById("invoiceCustomer");
   if(custEl)custEl.textContent=currentCustomer.name;
-  document.getElementById("invoiceTotal").textContent=cart.length;
-  document.getElementById("invoiceQty").textContent=getCartTotalQty();
+  document.getElementById("invoiceTotal").textContent=authorizedCart.length;
+  document.getElementById("invoiceQty").textContent=authorizedCart.reduce((sum,item)=>sum+getItemQty(item),0);
   const rv=document.getElementById("invRecvBranch");if(rv){const p=branchName.split(" - ");rv.textContent=p.length===2?p[1]+" - "+p[0]:branchName;}
   const rows=createInvoiceRowsFromCart();const pages=splitPages(rows);
   invoiceTemplate.offsetHeight;
@@ -515,7 +518,7 @@ const invoiceModalClose=document.getElementById("invoiceModalClose");
 const createInvoiceMobile=document.getElementById("createInvoiceMobile");
 const clearCartTopBtn=document.getElementById("clearCartTopBtn");
 
-function openInvoiceModal(){if(!invoiceModal)return;const t=document.getElementById("invoiceModalTotal");if(t)t.textContent=getCartTotalQty();invoiceModal.hidden=false;invoiceModal.setAttribute("aria-hidden","false");requestAnimationFrame(()=>invoiceModal.classList.add("active"));}
+function openInvoiceModal(){if(!invoiceModal)return;const t=document.getElementById("invoiceModalTotal");if(t)t.textContent=getCartForCurrentView().reduce((sum,item)=>sum+getItemQty(item),0);invoiceModal.hidden=false;invoiceModal.setAttribute("aria-hidden","false");requestAnimationFrame(()=>invoiceModal.classList.add("active"));}
 function closeInvoiceModal(){if(!invoiceModal)return;invoiceModal.classList.remove("active");invoiceModal.setAttribute("aria-hidden","true");setTimeout(()=>{invoiceModal.hidden=true;},200);}
 invoiceFab?.addEventListener("click",openInvoiceModal);
 invoiceModalClose?.addEventListener("click",closeInvoiceModal);
