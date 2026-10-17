@@ -236,6 +236,9 @@ function showStore(){
   if(categoriesBar) categoriesBar.style.display = "";
   if(productsMain) productsMain.style.display = "";
   if(searchInput) searchInput.disabled = false;
+  // Category cards may have been loaded before the customer signed in.
+  // Rebuild them now so only this customer's permitted categories exist.
+  buildCategoryCards();
   applyPermissions();
   const allowed = getAllowedCategories();
   if(!currentCategory || !allowed.includes(currentCategory)){
@@ -258,10 +261,10 @@ function getAllowedCategories(){
   if(!currentCustomer) return [];
   const perms = currentCustomer.permissions;
   if(perms && typeof perms === 'object' && Object.keys(perms).length > 0){
-    const active = Object.keys(perms).filter(k => perms[k]);
-    const productCats = new Set(allProducts.filter(p=>p.category).map(p=>p.category));
-    const matched = active.filter(c => productCats.has(c));
-    if(matched.length > 0) return matched;
+    // Permissions explicitly saved by the admin take precedence over every
+    // account default, including when none of the enabled categories has
+    // products at the moment.
+    return Object.keys(perms).filter(k => perms[k]);
   }
   const accType = currentCustomer.accountType || "";
   const storedMeta = (()=>{try{return JSON.parse(localStorage.getItem("simsim_cat_meta"))||{};}catch(e){return{};}})();
@@ -272,7 +275,7 @@ function getAllowedCategories(){
     const matched = defaults.filter(d => productCats.has(d));
     if(matched.length > 0) return matched;
   }
-  return [...new Set(allProducts.filter(p=>p.category).map(p=>p.category))];
+  return [];
 }
 function applyPermissions(){
   const allowed = getAllowedCategories();
@@ -297,7 +300,8 @@ function setActiveCategory(){
 
 function buildCategoryCards(){
   const bar=document.getElementById("categoriesBar");if(!bar)return;
-  const cats=[...new Set(allProducts.filter(p=>p.category).map(p=>p.category))];
+  const allowed=new Set(getAllowedCategories());
+  const cats=[...new Set(allProducts.filter(p=>p.category&&allowed.has(p.category)).map(p=>p.category))];
   let html="";
   cats.forEach(cat=>{
     const count=allProducts.filter(p=>p.category===cat).length;
@@ -366,6 +370,8 @@ function getFilteredProducts(){
   let base = currentCategory
     ? allProducts.filter(p => (p.category || "") === currentCategory)
     : allProducts;
+  // Do not rely on hidden category controls as the permission boundary.
+  base = base.filter(p => getAllowedCategories().includes(p.category || ""));
   if(currentCustomer && currentCustomer.accountType === "جرد مخزون"){
     base = base.filter(p => p.invVisible !== false);
   }
@@ -466,7 +472,7 @@ if(productsDiv){
    ======================== */
 function addToCart(id, quantity){
   const product = allProducts.find(p => String(p.id) === String(id));
-  if(!product) return;
+  if(!product || !getAllowedCategories().includes(product.category || "")) return;
   const addQty = parseInt(quantity,10);
   const finalQty = isNaN(addQty) || addQty < 1 ? 1 : addQty;
   const existing = cart.find(item => String(item.id) === String(id));
@@ -482,7 +488,7 @@ function updateCartCount(){
 }
 function addToInventoryCart(id, quantity){
   const product = allProducts.find(p => String(p.id) === String(id));
-  if(!product) return;
+  if(!product || !getAllowedCategories().includes(product.category || "")) return;
   const addQty = parseInt(quantity,10);
   const finalQty = isNaN(addQty) || addQty < 1 ? 1 : addQty;
   const existing = inventoryCart.find(item => String(item.id) === String(id));
